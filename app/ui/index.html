@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TickAssist - Ticket Handling</title>
+  <script>
+    // Apply the saved theme before first paint to avoid a flash of the default.
+    // "auto" (the default) follows the Windows light/dark setting; a ?theme=
+    // URL parameter overrides for quick switching/debugging.
+    try {
+      var params = new URLSearchParams(location.search);
+      var t = params.get("theme") || localStorage.getItem("tickassist_theme") || "auto";
+      if (t === "auto") {
+        t = (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches)
+          ? "dark" : "light";
+      }
+      document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="preload" href="/static/fonts/plexsans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/plexsans-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/plexsans-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/styles.css">
+  <!-- slot:head -->
+</head>
+<body>
+
+  <div class="toast-wrap" id="toast-wrap"></div>
+
+  <!-- Confirm modal -->
+  <div class="modal-backdrop hidden" id="modal">
+    <div class="modal">
+      <h3 id="modal-title">Are you sure?</h3>
+      <p id="modal-body">This action cannot be undone.</p>
+      <div class="btn-row">
+        <button class="btn red" id="modal-confirm">Confirm</button>
+        <button class="btn" id="modal-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import a CURRENT SERVER INFO report -->
+  <div class="modal-backdrop hidden" id="import-modal">
+    <div class="modal note-modal">
+      <div class="note-modal-head">
+        <h3>Import server report</h3>
+        <button class="icon-btn" id="import-close" title="Close (Esc)">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="import-step1">
+        <p class="field-help">Paste the report here, or open the saved text file. TickAssist reads the
+          operating system, Romexis and DIDAPI versions and offers to fill the matching fields.</p>
+        <textarea class="textarea mono small" id="import-text" rows="10" spellcheck="false"
+                  placeholder="CURRENT SERVER INFO ..."></textarea>
+        <div class="btn-row">
+          <button type="button" class="btn indigo" id="import-read">Read report</button>
+          <label class="btn" for="import-file">Open a file&hellip;</label>
+          <input type="file" id="import-file" accept=".txt,.log,text/plain" hidden>
+        </div>
+      </div>
+      <div id="import-step2" class="hidden">
+        <div class="import-rows" id="import-rows"></div>
+        <details class="import-ignored" id="import-extra-wrap"><summary>Other lines in the report - pick one to use it</summary>
+          <div class="import-extra" id="import-extra"></div>
+          <label class="check-row"><input type="checkbox" id="import-remember" checked>
+            <span>Remember my choices for next time</span></label></details>
+        <div class="btn-row">
+          <button type="button" class="btn indigo" id="import-apply">Fill selected fields</button>
+          <button type="button" class="btn" id="import-back">Back</button>
+        </div>
+      </div>
+      <div class="feat-msg hidden" id="import-msg" role="alert"></div>
+    </div>
+  </div>
+
+  <!-- slot:modals -->
+  <!-- Dynamics 365: create a case / send the note -->
+  <div class="modal-backdrop hidden" id="d365-modal">
+    <div class="modal d365-modal" role="dialog" aria-labelledby="d365-modal-title">
+      <div class="note-modal-head">
+        <h3 id="d365-modal-title">Create D365 Case</h3>
+        <button class="icon-btn" id="d365-modal-close" title="Close (Esc)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+
+      <div class="stack" id="d365-create-body">
+        <div>
+          <label class="label" for="d365-title">Case Title</label>
+          <input class="input" type="text" id="d365-title" maxlength="200">
+        </div>
+        <div>
+          <label class="label" for="d365-search">Customer</label>
+          <div class="d365-search-row">
+            <input class="input small" type="text" id="d365-search" placeholder="Search by name, account number or phone..." autocomplete="off">
+            <button class="btn small" id="d365-search-btn">Search</button>
+          </div>
+          <div class="d365-results" id="d365-results" role="radiogroup" aria-label="Customer"></div>
+        </div>
+        <div>
+          <label class="label" for="d365-desc">Description</label>
+          <textarea class="textarea small mono" id="d365-desc" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="stack hidden" id="d365-note-body">
+        <div class="d365-case-card" id="d365-case-card">Looking up the case&hellip;</div>
+        <div>
+          <label class="label" for="d365-subject">Note Title</label>
+          <input class="input" type="text" id="d365-subject" maxlength="500">
+        </div>
+      </div>
+
+      <div class="stack d365-sends">
+        <label class="check-row"><input type="checkbox" id="d365-send-note" checked>
+          <span>Add the note to the case timeline</span></label>
+        <label class="check-row hidden" id="d365-photos-row" data-feature="photos"><input type="checkbox" id="d365-send-photos" checked>
+          <span id="d365-photos-label">Attach photos</span></label>
+      </div>
+
+      <div class="d365-error hidden" id="d365-error" role="alert"></div>
+      <div class="btn-row">
+        <button class="btn indigo" id="d365-go">Create Case</button>
+        <button class="btn" id="d365-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <!-- Top app bar: brand identity + global controls -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img src="/static/planmeca_logo.svg" alt="Planmeca" class="brand-logo">
+      </div>
+      <div class="topbar-lockup">
+        <span class="topbar-title">TickAssist</span>
+        <span class="topbar-sub">Service Notes</span>
+      </div>
+      <div class="topbar-right">
+        <!-- Standing rotation. Stamped onto every note saved; stays put until
+             switched back, so a whole shift is tagged without touching it. -->
+        <div class="mode-toggle" id="call-type-toggle" data-call-type-group role="radiogroup" aria-label="Current rotation">
+          <button type="button" class="mode-opt" role="radio" aria-checked="false"
+                  data-call-type="First Impressions"
+                  title="Notes you save are tagged as First Impressions calls">First Impressions</button>
+          <button type="button" class="mode-opt" role="radio" aria-checked="false"
+                  data-call-type="Troubleshooting"
+                  title="Notes you save are tagged as Troubleshooting calls">Troubleshooting</button>
+        </div>
+        <!-- Substituted server-side from the VERSION file at the project root;
+             app.js backfills it if this page is ever served unrendered. -->
+        <span class="topbar-meta" id="app-version" title="TickAssist version">v{{VERSION}}</span>
+        <button class="btn small indigo hidden" id="update-chip" type="button" title="A newer version is published - install it and restart"></button>
+        <button class="icon-btn" id="btn-theme-quick" title="Toggle light / dark theme">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="nav-label">Workspace</div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-page="generator">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          <span>Note Generator</span>
+        </button>
+        <!-- slot:nav -->
+        <button class="nav-item" data-page="settings">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="nav-spacer"></div>
+
+      <!-- Live health of the integrations set up on this PC, readable from any
+           page. Rendered by app.js (renderConnections) and hidden while none
+           are set up; a click opens that integration's drawer over the page
+           in hand, so a lapsed sign-in is fixed without leaving the note. -->
+      <div class="conn hidden" id="conn">
+        <div class="nav-label">Connections</div>
+        <div class="conn-list" id="conn-list"></div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+
+      <!-- ============ NOTE GENERATOR ============ -->
+      <section class="page active" id="page-generator">
+        <div class="generator">
+
+          <!-- Form panel -->
+          <div class="panel form-panel">
+            <div class="panel-head">
+              <h2 class="panel-title">Case Entry</h2>
+              <button type="button" class="btn small fi-only" id="fi-more" aria-pressed="false"
+                      title="Open every section instead of working step by step"></button>
+              <!-- Only while editing a saved ticket. The topbar toggle is the
+                   standing rotation; this one is about the ticket in hand, and
+                   sits with the ticket rather than with the app chrome. -->
+              <div class="case-rotation hidden" id="case-rotation">
+                <span class="case-rotation-label">This ticket</span>
+                <div class="mode-toggle" id="case-call-type-toggle" data-call-type-group
+                     role="radiogroup" aria-label="Rotation for the ticket being edited">
+                  <button type="button" class="mode-opt" role="radio" aria-checked="false"
+                          data-call-type="First Impressions">First Impressions</button>
+                  <button type="button" class="mode-opt" role="radio" aria-checked="false"
+                          data-call-type="Troubleshooting">Troubleshooting</button>
+                </div>
+              </div>
+            </div>
+            <div class="stack">
+              <section class="fi-step" data-fi-step="caller" data-state="open">
+              <button type="button" class="fi-step-head" data-fi-head="caller" aria-expanded="true"><span class="fi-step-num">1</span><span class="fi-step-title">Caller</span><span class="fi-step-status"></span></button>
+              <div class="fi-step-body">
+              <div class="row-2">
+                <div>
+                  <label class="label" for="caseNumber">Case ID</label>
+                  <input class="input" type="text" id="caseNumber" value="CAS">
+                </div>
+                <div>
+                  <label class="label" for="dateTime">Timestamp <span class="hint">(dbl-click = now)</span></label>
+                  <input class="input" type="text" id="dateTime" readonly title="Double-click to set to the current time">
+                </div>
+              </div>
+
+              <div class="row-2">
+                <div>
+                  <label class="label" for="caseTitle">Case Title <span class="hint">(auto)</span></label>
+                  <input class="input" type="text" id="caseTitle" placeholder="Device - Problem - Serial">
+                </div>
+                <div>
+                  <label class="label" for="contact">Contact Name</label>
+                  <input class="input" type="text" id="contact" placeholder="Name">
+                </div>
+              </div>
+
+              <div class="row-2">
+                <div>
+                  <label class="label" for="contactType">Contact Type</label>
+                  <select class="select" id="contactType">
+                    <option value="End User">End User</option>
+                    <option value="Dealer">Dealer</option>
+                    <option value="IT">IT</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Military">Military</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label" for="phone">Phone Number</label>
+                  <input class="input" type="text" id="phone" placeholder="###-###-####">
+                </div>
+              </div>
+
+              <!-- Spans the full width beneath Contact Type and Phone Number:
+                   it is about the caller, not about either field alone.
+                   Inline and non-blocking - it must not steal focus mid-call. -->
+              <div class="repeat-caller hidden" id="repeat-caller" role="status"></div>
+
+              <!-- Incoming call that arrived while Phone Number already held a
+                   different number: offered, never forced over a note in progress. -->
+              <div class="incoming-call hidden" id="incoming-call" data-feature="calls" role="status"></div>
+
+              <div id="dealerContainer" class="hidden">
+                <label class="label" for="dealerName">Dealer Company</label>
+                <div class="combo" id="dealer-combo">
+                  <input class="input" type="text" id="dealerName" placeholder="Select or type dealer..."
+                         autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false">
+                  <div class="combo-menu hidden" id="dealer-menu" role="listbox"></div>
+                </div>
+              </div>
+
+              
+              </div>
+            </section>
+
+              <section class="fi-step" data-fi-step="env" data-state="open">
+              <button type="button" class="fi-step-head" data-fi-head="env" aria-expanded="true"><span class="fi-step-num">2</span><span class="fi-step-title">System Environment</span><span class="fi-step-status"></span></button>
+              <div class="fi-step-body">
+<!-- Environment. Collapsible: on a laptop screen this block is
+                   the difference between the form fitting and not, and it is
+                   often untouched for a whole shift. Collapsed state persists.
+                   When collapsed the header summarises what is filled in, so
+                   nothing is silently hidden. -->
+              <div class="env-block" id="env-section">
+                <div class="env-headrow">
+                  <button type="button" class="env-head" id="env-toggle"
+                          aria-expanded="true" aria-controls="env-body">
+                    <svg class="env-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    <span class="env-title">System Environment</span>
+                    <span class="env-summary" id="env-summary"></span>
+                  </button>
+                  <button type="button" class="btn small env-import" id="btn-import-report"
+                          title="Paste or open a CURRENT SERVER INFO report and fill the fields below from it">Import server report&hellip;</button>
+                </div>
+                <div class="env-body" id="env-body">
+                <div class="chip-row" role="group" aria-label="Operating system">
+                  <label class="chip"><input type="checkbox" name="os" value="Windows" checked><span>Windows</span></label>
+                  <label class="chip"><input type="checkbox" name="os" value="Windows Server"><span>Windows Server</span></label>
+                  <label class="chip"><input type="checkbox" name="os" value="macOS"><span>macOS</span></label>
+                  <span class="sheet-alt hidden" id="sheet-alt" data-feature="sheet"></span>
+                </div>
+                <div class="combo" id="osVersion-combo">
+                    <input class="input small" type="text" id="osVersion" placeholder="OS Version (e.g., 11)"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="osVersion-menu" role="listbox"></div>
+                  </div>
+                <div class="combo hidden" id="osVersion2-combo">
+                    <input class="input small" type="text" id="osVersion2" placeholder="Second system version"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="osVersion2-menu" role="listbox"></div>
+                  </div>
+                <div class="row-2">
+                  <div class="combo" id="deviceType-combo">
+                    <input class="input small" type="text" id="deviceType" placeholder="Device Type"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="deviceType-menu" role="listbox"></div>
+                  </div>
+                  <input class="input small" type="text" id="serialNumber" placeholder="Unit Serial #">
+                </div>
+                <div class="row-2">
+                  <div class="combo" id="deviceFirmware-combo">
+                    <input class="input small" type="text" id="deviceFirmware" placeholder="Device Firmware"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="deviceFirmware-menu" role="listbox"></div>
+                  </div>
+                  <div class="combo" id="deviceToolVersion-combo">
+                    <input class="input small" type="text" id="deviceToolVersion" placeholder="Device Tool Ver"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="deviceToolVersion-menu" role="listbox"></div>
+                  </div>
+                </div>
+                <div class="row-2">
+                  <div class="combo" id="didapi-combo">
+                    <input class="input small" type="text" id="didapi" placeholder="DIDAPI Ver"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="didapi-menu" role="listbox"></div>
+                  </div>
+                  <div class="combo" id="romexis-combo">
+                    <input class="input small" type="text" id="romexis" placeholder="Romexis Ver"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="romexis-menu" role="listbox"></div>
+                  </div>
+                </div>
+                <div class="row-2">
+                  <div class="combo" id="imagingPackage-combo">
+                    <input class="input small" type="text" id="imagingPackage" placeholder="Imaging Package"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="imagingPackage-menu" role="listbox"></div>
+                  </div>
+                  <div class="combo" id="recoOs-combo">
+                    <input class="input small" type="text" id="recoOs" placeholder="Reco System OS"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="recoOs-menu" role="listbox"></div>
+                  </div>
+                </div>
+                <p class="sheet-check hidden" id="sheet-check" data-feature="sheet" role="status"></p>
+                <div class="row-2">
+                  <div class="combo" id="recoPc-combo">
+                    <input class="input small" type="text" id="recoPc" placeholder="Reco Unit"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="recoPc-menu" role="listbox"></div>
+                  </div>
+                  <div class="combo" id="recoFirmware-combo">
+                    <input class="input small" type="text" id="recoFirmware" placeholder="Reco Firmware"
+                           autocomplete="off" role="combobox" aria-autocomplete="list">
+                    <div class="combo-menu hidden" id="recoFirmware-menu" role="listbox"></div>
+                  </div>
+                </div>
+                </div><!-- /env-body -->
+              </div>
+
+              
+              </div>
+            </section>
+
+              <section class="fi-step" data-fi-step="diag" data-state="open">
+              <button type="button" class="fi-step-head" data-fi-head="diag" aria-expanded="true"><span class="fi-step-num">3</span><span class="fi-step-title">Diagnostics</span><span class="fi-step-status"></span></button>
+              <div class="fi-step-body">
+<div class="form-divider">Diagnostics</div>
+
+              <div>
+                <label class="label red" for="errorInfo">Error / Log Info</label>
+                <input class="input red" type="text" id="errorInfo" placeholder="Error codes/messages...">
+              </div>
+              <div>
+                <label class="label green" for="partRec">Part Recommendation</label>
+                <input class="input green" type="text" id="partRec" placeholder="Recommended part(s)...">
+              </div>
+
+              
+              </div>
+            </section>
+
+              <section class="fi-step" data-fi-step="details" data-state="open">
+              <button type="button" class="fi-step-head" data-fi-head="details" aria-expanded="true"><span class="fi-step-num">4</span><span class="fi-step-title">Case Details</span><span class="fi-step-status"></span></button>
+              <div class="fi-step-body">
+<div class="form-divider">Case Details</div>
+
+              <div>
+                <label class="label" for="problem">Problem / Request</label>
+                <textarea class="textarea" id="problem" rows="2"></textarea>
+              </div>
+              <div>
+                <label class="label amber" for="workflow">Troubleshooting</label>
+                <textarea class="textarea amber" id="workflow" rows="4" placeholder="One task per line..."></textarea>
+              </div>
+
+              <div>
+                <label class="label" for="nextSteps">Next Steps</label>
+                <textarea class="textarea" id="nextSteps" rows="3" placeholder="What still needs to happen..."></textarea>
+              </div>
+
+              
+              </div>
+            </section>
+
+              <section class="fi-step" data-fi-step="resolution" data-state="open">
+              <button type="button" class="fi-step-head" data-fi-head="resolution" aria-expanded="true"><span class="fi-step-num">5</span><span class="fi-step-title">Resolution</span><span class="fi-step-status"></span></button>
+              <div class="fi-step-body">
+<div class="form-divider">Resolution</div>
+
+              <div>
+                <label class="label green" for="outcome">Resolution</label>
+                <textarea class="textarea green" id="outcome" rows="4" placeholder="Summary statement of actions..."></textarea>
+              </div>
+
+              <div>
+                <label class="label green" for="resStatus">Resolution Status</label>
+                <select class="select green-text" id="resStatus">
+                  <option value="Resolved">Resolved</option>
+                  <option value="Awaiting Information">Awaiting Information</option>
+                  <option value="Escalated for Troubleshooting">Escalated for Troubleshooting</option>
+                  <option value="Escalated to Dealer">Escalated to Dealer</option>
+                  <option value="Escalated to IT">Escalated to IT</option>
+                  <option value="Escalated to After Sales">Escalated to After Sales</option>
+                  <option value="Escalated to Third Party">Escalated to Third Party</option>
+                </select>
+              </div>
+              </div>
+            </section>
+              </div>
+            </div>
+
+          <!-- Preview panel -->
+          <div class="panel">
+            <div class="edit-banner hidden" id="edit-banner">
+              <span>Editing saved ticket <strong id="edit-banner-label"></strong> &mdash; saving updates it in place.</span>
+              <button class="btn-link" id="btn-save-as-new" title="Keep the original ticket and save these fields as a copy">Save as new</button>
+              <button class="icon-btn" id="btn-stop-editing" title="Stop editing and clear the form">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="panel-head preview-head">
+              <h2 class="panel-title">Note Preview</h2>
+              <!-- First Impressions handle timer. app.js shows it only on that
+                   rotation, starts it on the first field entry (or a timestamp
+                   double-click), and drives the 10-to-15-minute glow ramp. -->
+              <span class="fi-timer hidden" id="fi-timer"
+                    title="Time on this note — starts with the first field entry or a timestamp double-click, resets on save or clear. Double-click to reset it now.">00:00</span>
+              <div class="panel-actions">
+                <button class="btn indigo" id="btn-polish" data-feature="polish" title="Clean up the note text with the configured LLM">AI Polish</button>
+                <button class="btn hidden" id="btn-polish-undo" data-feature="polish" title="Put back the text from before the last AI Polish">Undo Polish</button>
+                <button class="btn green" id="btn-save" title="Save this ticket (Ctrl+S)">Save Ticket</button>
+                <button class="btn" id="btn-import" title="Fill the form from a service note copied to the clipboard">Import</button>
+                <button class="btn" id="btn-copy" title="Copy the D365-ready note (Ctrl+Enter)">Copy Note</button>
+                <button class="btn" id="btn-open-transfer" data-open-drawer="transfer" data-feature="transfer"
+                        title="Send the active call to a troubleshooting queue">Transfer call</button>
+                <button class="btn" id="btn-new-d365-case" title="Open a new D365 case with the title prefilled">New D365 Case</button>
+                <button class="btn hidden" id="btn-d365-note" data-feature="d365" title="Add this note (and photos) to the case's timeline in D365">Send to D365</button>
+                <button class="btn" id="btn-clear" title="Reset all fields">Clear</button>
+              </div>
+            </div>
+
+            <div class="preview-body" id="print-area">
+              <h2 class="preview-title">Technical Note: <span class="case" id="prev-caseNumber">CAS</span></h2>
+              <h3 class="preview-sub">
+                <span id="prev-title"></span>
+                <button class="icon-btn copy-title hidden" id="btn-copy-title" title="Copy the case title">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </h3>
+
+              <div class="meta-grid">
+                <p id="disp-calltype-row"><strong>Call Type:</strong> <span id="disp-callType"></span></p>
+                <p id="disp-date-row" class="hidden"><strong>Date:</strong> <span id="disp-date"></span></p>
+                <p id="disp-contact-row" class="hidden"><strong>Contact:</strong> <span id="disp-contact"></span></p>
+                <p id="disp-type-row" class="hidden"><strong>Type:</strong> <span id="disp-type"></span></p>
+                <p id="disp-phone-row" class="hidden"><strong>Phone:</strong> <span id="disp-phone"></span></p>
+                <p id="disp-dealer-row" class="hidden"><strong>Dealer:</strong> <span id="disp-dealer"></span></p>
+              </div>
+
+              <div id="env-block" class="block env hidden">
+                <p id="disp-deviceType-row" class="hidden"><strong>Device:</strong> <span id="disp-deviceType"></span></p>
+                <p id="disp-os-row" class="hidden"><strong>OS:</strong> <span id="disp-osVersion"></span></p>
+                <p id="disp-devicefw-row" class="hidden"><strong>Device FW:</strong> <span id="disp-deviceFirmware"></span> | <strong>Device Tool:</strong> <span id="disp-deviceToolVersion"></span></p>
+                <p id="disp-versions-row" class="hidden"><strong>DIDAPI:</strong> <span id="disp-didapi"></span> | <strong>Romexis:</strong> <span id="disp-romexis"></span></p>
+                <p id="disp-package-row" class="hidden"><strong>Package:</strong> <span id="disp-imagingPackage"></span></p>
+                <p id="disp-recoos-row" class="hidden"><strong>Reco OS:</strong> <span id="disp-recoOs"></span></p>
+                <p id="disp-reco-row" class="hidden"><strong>Reco PC:</strong> <span id="disp-recoPc"></span> | <strong>Serial:</strong> <span id="disp-serialNumber"></span></p>
+                <p id="disp-recofw-row" class="hidden"><strong>Reco FW:</strong> <span id="disp-recoFirmware"></span></p>
+              </div>
+
+              <div id="error-block" class="block error hidden"><strong>Error:</strong> <span id="disp-error"></span></div>
+              <div id="part-block" class="block part hidden"><strong>Recommended Parts:</strong> <span id="disp-part"></span></div>
+              <div id="problem-block" class="block problem hidden"><strong>Issue:</strong> <span id="disp-problem"></span></div>
+              <div id="workflow-block" class="block workflow hidden"><strong>Troubleshooting:</strong> <span id="disp-workflow"></span></div>
+              <div id="nextSteps-block" class="block nextsteps hidden"><strong>Next Steps:</strong> <span id="disp-nextSteps"></span></div>
+              <div id="outcome-block" class="block outcome hidden"><strong>Resolution [<span id="disp-res-status">Resolved</span>]:</strong> <span id="disp-outcome"></span></div>
+            </div>
+
+            <!-- Photos: kept with the ticket, outside #print-area so they never
+                 end up in the copied note text. -->
+            <div class="photos" id="photos" data-feature="photos">
+              <div class="photos-head">
+                <span class="photos-title">Photos <span class="photos-count" id="photos-count"></span></span>
+                <div class="photos-actions">
+                  <button class="btn small" id="btn-photo-add" title="Choose image files">Add Photos</button>
+                  <button class="btn small hidden" id="btn-photo-copy-all" title="Copy every photo into clipboard history - Win+V in D365 lists them">Copy All</button>
+                  <button class="btn small hidden" id="btn-photo-save-all" title="Download every photo, ready to attach in D365">Save All</button>
+                </div>
+              </div>
+              <input type="file" id="photo-input" accept="image/*" multiple hidden>
+              <div class="photo-drop" id="photo-drop">
+                <div class="photo-grid" id="photo-grid"></div>
+                <div class="photo-empty" id="photo-empty">Paste a screenshot (Ctrl+V), drop image files here, or use Add Photos.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- slot:pages -->
+      <!-- ============ SETTINGS ============ -->
+      <!-- One page, one scroll - no tabs. Integrations get a single panel of
+           status tiles at the top; each tile opens that integration's setup in
+           a drawer over the page (see INTEGRATION DRAWERS below), so the rest
+           of Settings keeps the layout it always had. -->
+      <section class="page" id="page-settings">
+        <div class="page-head">
+          <div>
+            <div class="page-title">Settings</div>
+            <div class="page-desc">Integrations, appearance, AI Polish provider, managed lists, and shorthand macros.</div>
+          </div>
+          <div class="page-actions">
+            <button class="btn" id="btn-open-features" data-open-drawer="features"
+                    title="Which add-on features this PC offers">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              Features
+            </button>
+          </div>
+        </div>
+
+        <!-- Settings is split in two so neither is a wall of panels: General
+             (connections, look, AI, updates) and Lists &amp; Macros (the things
+             you add to as you work). Both stay in the page, so loading and
+             saving work whichever is showing. -->
+        <div class="subtabs" role="tablist" aria-label="Settings sections" id="settings-tabs">
+          <button type="button" role="tab" class="subtab" id="settings-tab-general"
+                  data-settings-tab="general" aria-controls="settings-pane-general"
+                  aria-selected="true">General</button>
+          <button type="button" role="tab" class="subtab" id="settings-tab-lists"
+                  data-settings-tab="lists" aria-controls="settings-pane-lists"
+                  aria-selected="false" tabindex="-1">Lists &amp; Macros</button>
+        </div>
+
+        <div class="settings-grid" id="settings-pane-general" role="tabpanel"
+             aria-labelledby="settings-tab-general">
+          <!-- Integrations: a tile per connection to another system, each with
+               its live status. A switched-off feature's tile is hidden; the
+               panel goes with them if every one is off. -->
+          <div class="panel integrations-panel" id="integrations-panel">
+            <div class="panel-head"><h2 class="panel-title">Integrations</h2></div>
+            <div class="integ-grid">
+              <button type="button" class="integ-tile" data-open-drawer="calls" data-feature="calls">
+                <span class="integ-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.18 2 2 0 0 1 4.08 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.1 9.9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+                <span class="integ-text">
+                  <span class="integ-name">Incoming calls <span class="integ-vendor">CXone MAX</span></span>
+                  <span class="integ-desc">Fills Phone Number from the call coming in.</span>
+                  <span class="integ-status" data-integ-status="calls"><span class="dot"></span><span class="integ-state">Checking&hellip;</span></span>
+                </span>
+                <svg class="integ-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+              </button>
+
+              <button type="button" class="integ-tile" data-open-drawer="d365" data-feature="d365">
+                <span class="integ-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M3 13h18"/></svg></span>
+                <span class="integ-text">
+                  <span class="integ-name">Dynamics 365</span>
+                  <span class="integ-desc">Creates cases and sends notes, signed in as you.</span>
+                  <span class="integ-status" data-integ-status="d365"><span class="dot"></span><span class="integ-state">Checking&hellip;</span></span>
+                </span>
+                <svg class="integ-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+              </button>
+
+              <button type="button" class="integ-tile" data-open-drawer="sheet" data-feature="sheet">
+                <span class="integ-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg></span>
+                <span class="integ-text">
+                  <span class="integ-name">Google Sheets <span class="integ-vendor">Lookups</span></span>
+                  <span class="integ-desc">Fills fields from one or more sheets, by Imaging Package, serial and more.</span>
+                  <span class="integ-status" data-integ-status="sheet"><span class="dot"></span><span class="integ-state">Checking&hellip;</span></span>
+                </span>
+                <svg class="integ-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Appearance / theme -->
+          <div class="panel appearance-panel">
+            <div class="panel-head"><h2 class="panel-title">Appearance</h2></div>
+            <div class="theme-picker" id="theme-picker">
+              <button type="button" class="theme-option" data-theme="auto">
+                <span class="theme-swatch swatch-auto"></span> Auto (Windows)
+              </button>
+              <button type="button" class="theme-option" data-theme="dark">
+                <span class="theme-swatch swatch-dark"></span> Dark
+              </button>
+              <button type="button" class="theme-option" data-theme="light">
+                <span class="theme-swatch swatch-light"></span> Light
+              </button>
+              <button type="button" class="theme-option" data-theme="contrast">
+                <span class="theme-swatch swatch-contrast"></span> High Contrast
+              </button>
+              <button type="button" class="theme-option" data-theme="lcars">
+                <span class="theme-swatch swatch-lcars"></span> LCARS
+              </button>
+            </div>
+          </div>
+
+          <!-- LCARS alert conditions (shown only on the LCARS theme) -->
+          <div class="panel lcars-only" id="alert-panel">
+            <div class="panel-head"><h2 class="panel-title">Alert Conditions</h2></div>
+            <p class="settings-hint">Yellow and red alert effects run only on the LCARS
+              theme. Each condition turns an alert on while it is true: the elbow, strip
+              and rail change colour, the screen edge glows, and a banner appears under
+              the top bar. Handle time counts the First Impressions timer. Words match
+              whole words, so <em>fire</em> will not fire on <em>firewall</em>; end a
+              word with <em>*</em> to match a prefix (<em>injur*</em> matches injured).
+              Separate several values with commas. Saved in this browser.</p>
+            <div id="alert-rules"></div>
+            <div class="btn-row">
+              <button type="button" class="btn small" id="btn-alert-add">Add condition</button>
+              <button type="button" class="btn small" id="btn-alert-reset">Reset to defaults</button>
+              <button type="button" class="btn small" id="btn-alert-test-y">Preview yellow</button>
+              <button type="button" class="btn small" id="btn-alert-test-r">Preview red</button>
+            </div>
+          </div>
+
+          <!-- slot:settings -->
+          <!-- LLM settings -->
+          <div class="panel" data-feature="polish">
+            <div class="panel-head"><h2 class="panel-title">AI Polish &mdash; LLM Provider</h2></div>
+            <div class="stack">
+              <div>
+                <label class="label" for="llm-provider">Provider</label>
+                <select class="select" id="llm-provider">
+                  <option value="gemini">Google Gemini</option>
+                  <option value="anthropic">Anthropic Claude</option>
+                </select>
+              </div>
+              <div>
+                <label class="label" for="llm-model">Model</label>
+                <input class="input" type="text" id="llm-model" placeholder="gemini-2.5-flash">
+                <div class="field-help" id="model-help"></div>
+              </div>
+              <div>
+                <label class="label" for="llm-key">API Key</label>
+                <input class="input mono masked" type="text" id="llm-key" placeholder="Paste your API key" autocomplete="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-form-type="other">
+                <div class="field-help" id="key-status"></div>
+              </div>
+              <div>
+                <label class="label" for="llm-prompt">Instructions for AI Polish</label>
+                <textarea class="textarea mono small" id="llm-prompt" rows="12" spellcheck="false"></textarea>
+                <div class="field-help">What the AI is told to do. Edit the rules (for example how the resolution sentence
+                  should read) and press Save Settings. The answer format TickAssist reads is added automatically, and a
+                  rewrite that drops steps or numbers is still rejected.</div>
+                <button type="button" class="btn small" id="btn-llm-prompt-reset">Back to the default instructions</button>
+              </div>
+              <button class="btn indigo block" id="btn-save-settings">Save Settings</button>
+            </div>
+          </div>
+
+          <!-- Updates  -->
+          <div class="panel" id="update-panel">
+            <div class="panel-head"><h2 class="panel-title">Updates</h2><span class="topbar-meta" id="upd-version"></span></div>
+            <p class="field-help" id="upd-help">The GitHub repository whose Releases TickAssist updates
+              from. TickAssist checks it when it opens; installing an update keeps your
+              settings, lists and macros, then restarts.</p>
+            <!-- slot:updates -->
+            <div class="stack">
+              <input class="input" type="text" id="upd-url" autocomplete="off" spellcheck="false"
+                     placeholder="https://github.com/Ankokomen/Tickassist-Public">
+              <label class="switch-row" id="upd-auto-row">
+                <span class="switch-text">
+                  <span class="switch-label">Install updates automatically when TickAssist starts</span>
+                  <span class="switch-desc">TickAssist checks for a newer version, installs it and restarts itself before it opens.</span>
+                </span>
+                <input type="checkbox" class="switch" id="upd-auto">
+              </label>
+              <div class="btn-row">
+                <button type="button" class="btn small" id="btn-upd-save">Save address</button>
+                <button type="button" class="btn small" id="btn-upd-check">Check for updates</button>
+                <button type="button" class="btn green small hidden" id="btn-upd-install">Install update and restart</button>
+              </div>
+              <div class="cw-status hidden" id="upd-status" role="status"></div>
+              <div id="upd-versions-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                <select class="select" id="upd-versions" aria-label="Version to install"><option value="">Other versions...</option></select>
+                <button type="button" class="btn small" id="btn-upd-load">Show versions</button>
+                <button type="button" class="btn small hidden" id="btn-upd-version">Install this version and restart</button>
+              </div>
+              <div class="field-help" id="upd-versions-help">Go back to an earlier version if an update causes trouble. Going back turns
+                off "update when TickAssist starts", so it stays on the version you picked. Your settings, lists and
+                macros are kept.</div>
+            </div>
+          </div>
+
+          <div class="panel" id="report-panel">
+            <div class="panel-head"><h2 class="panel-title">Server report import</h2></div>
+            <p class="field-help">What &ldquo;Import server report&rdquo; reads from a CURRENT SERVER INFO printout.
+              One rule per line: <span class="mono">Label in the report = TickAssist field</span>. The Operating
+              System line is always read. Fields you can use: os_version, os_version2, device_type, serial_number,
+              device_firmware, device_tool_version, didapi, romexis, imaging_package, reco_os, reco_pc, reco_firmware,
+              and error_info, problem, workflow, next_steps, part_rec (these are added to what is already written,
+              as &ldquo;Label: value&rdquo;).</p>
+            <div class="stack">
+              <textarea class="textarea mono small" id="rpt-rules" rows="9" spellcheck="false"
+                        placeholder="Romexis = romexis&#10;DidapiKit = didapi"></textarea>
+              <div class="btn-row">
+                <button type="button" class="btn small indigo" id="btn-rpt-save">Save rules</button>
+                <button type="button" class="btn small" id="btn-rpt-reset">Back to the defaults</button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /#settings-pane-general -->
+
+        <div class="settings-grid lists-grid hidden" id="settings-pane-lists" role="tabpanel"
+             aria-labelledby="settings-tab-lists">
+          <!-- Recognized Dealers -->
+          <div class="panel">
+            <div class="panel-head"><h2 class="panel-title">Recognized Dealers</h2></div>
+            <div class="managed-add">
+              <input class="input" type="text" data-list-add="dealers" placeholder="Add a dealer company...">
+              <button class="btn green" data-list-addbtn="dealers">Add</button>
+            </div>
+            <div class="managed-list" data-list="dealers"></div>
+          </div>
+
+          <!-- Device Types -->
+          <div class="panel">
+            <div class="panel-head"><h2 class="panel-title">Device Types</h2></div>
+            <div class="managed-add">
+              <input class="input" type="text" data-list-add="device_types" placeholder="Add a device type...">
+              <button class="btn green" data-list-addbtn="device_types">Add</button>
+            </div>
+            <div class="managed-list" data-list="device_types"></div>
+          </div>
+
+          <!-- Reco Units -->
+          <div class="panel">
+            <div class="panel-head"><h2 class="panel-title">Reco Units</h2></div>
+            <div class="managed-add">
+              <input class="input" type="text" data-list-add="reco_units" placeholder="Add a Reco unit...">
+              <button class="btn green" data-list-addbtn="reco_units">Add</button>
+            </div>
+            <div class="managed-list" data-list="reco_units"></div>
+          </div>
+
+          <!-- System Environment dropdown lists (spans all columns) -->
+          <details class="panel macro-panel" id="env-lists-panel">
+            <summary class="panel-title env-lists-summary">System Environment Lists</summary>
+            <p class="field-help">The choices for the System Environment dropdowns. Notes can only use
+              values on these lists, and a value can only be added here if it is in one of your linked
+              Google Sheets (so <span class="mono">23</span> and <span class="mono">23.1.0</span> never get
+              mixed up). Use the button to pull everything your sheets hold; remove any you don't want.</p>
+            <div class="btn-row">
+              <button type="button" class="btn small" id="btn-lists-import">Import values from my sheets</button>
+              <span class="field-help" id="lists-import-status" role="status"></span>
+            </div>
+            <div class="env-lists-grid">
+              <div class="env-list-panel">
+                <h3 class="env-list-title">OS Versions</h3>
+                <div class="managed-add">
+                  <input class="input" type="text" data-list-add="os_versions" placeholder="Add a value (must be in a sheet)...">
+                  <button class="btn green" data-list-addbtn="os_versions">Add</button>
+                </div>
+                <div class="managed-list" data-list="os_versions"></div>
+              </div>
+              <div class="env-list-panel">
+                <h3 class="env-list-title">Device Firmware</h3>
+                <div class="managed-add">
+                  <input class="input" type="text" data-list-add="device_firmware" placeholder="Add a value...">
+                  <button class="btn green" data-list-addbtn="device_firmware">Add</button>
+                </div>
+                <div class="managed-list" data-list="device_firmware"></div>
+              </div>
+              <div class="env-list-panel">
+                <h3 class="env-list-title">Device Tool Versions</h3>
+                <div class="managed-add">
+                  <input class="input" type="text" data-list-add="device_tool_versions" placeholder="Add a value...">
+                  <button class="btn green" data-list-addbtn="device_tool_versions">Add</button>
+                </div>
+                <div class="managed-list" data-list="device_tool_versions"></div>
+              </div>
+              <div class="env-list-panel">
+                <h3 class="env-list-title">DIDAPI Versions</h3>
+                <div class="managed-add">
+                  <input class="input" type="text" data-list-add="didapi_versions" placeholder="Add a value...">
+                  <button class="btn green" data-list-addbtn="didapi_versions">Add</button>
+                </div>
+                <div class="managed-list" data-list="didapi_versions"></div>
+              </div>
+              <div class="env-list-panel">
+                <h3 class="env-list-title">Romexis Versions</h3>
+                <div class="managed-add">
+                  <input class="input" type="text" data-list-add="romexis_versions" placeholder="Add a value...">
+                  <button class="btn green" data-list-addbtn="romexis_versions">Add</button>
+                </div>
+                <div class="managed-list" data-list="romexis_versions"></div>
+              </div>
+              <div class="env-list-panel">
+                <h3 class="env-list-title">Imaging Packages</h3>
+                <div class="managed-add">
+                  <input class="input" type="text" data-list-add="imaging_packages" placeholder="Add a value...">
+                  <button class="btn green" data-list-addbtn="imaging_packages">Add</button>
+                </div>
+                <div class="managed-list" data-list="imaging_packages"></div>
+              </div>
+              <div class="env-list-panel">
+                <h3 class="env-list-title">Reco System OS</h3>
+                <div class="managed-add">
+                  <input class="input" type="text" data-list-add="reco_os" placeholder="Add a value...">
+                  <button class="btn green" data-list-addbtn="reco_os">Add</button>
+                </div>
+                <div class="managed-list" data-list="reco_os"></div>
+              </div>
+              <div class="env-list-panel">
+                <h3 class="env-list-title">Reco Firmware</h3>
+                <div class="managed-add">
+                  <input class="input" type="text" data-list-add="reco_firmware" placeholder="Add a value...">
+                  <button class="btn green" data-list-addbtn="reco_firmware">Add</button>
+                </div>
+                <div class="managed-list" data-list="reco_firmware"></div>
+              </div>
+            </div>
+          </details>
+
+          <!-- Required fields (spans all columns) -->
+          <div class="panel macro-panel" id="req-panel">
+            <div class="panel-head"><h2 class="panel-title">Required Fields</h2></div>
+            <p class="field-help">Save is blocked until the ticked fields are filled in, as it
+              is for the Case ID. Rules apply as the note changes; add, change or remove them
+              any time. Fields still needed are marked amber in the note. A rule can apply
+              to every call type or only to First Impressions or Troubleshooting.</p>
+            <label class="field-help" for="req-software"><strong>Software device types</strong>
+              (comma separated) - any other Device Type counts as hardware. A name containing
+              &ldquo;software&rdquo; always counts as software.</label>
+            <input class="input" type="text" id="req-software" autocomplete="off" spellcheck="false"
+                   placeholder="Workstation, Server">
+            <div id="req-rules"></div>
+            <div class="btn-row">
+              <button type="button" class="btn small" id="btn-req-add">Add rule</button>
+              <button type="button" class="btn small" id="btn-req-reset">Reset to defaults</button>
+              <button type="button" class="btn green small" id="btn-req-save">Save</button>
+            </div>
+          </div>
+
+          <!-- Shorthand macros (spans all columns) -->
+          <div class="panel macro-panel">
+            <div class="panel-head"><h2 class="panel-title">Shorthand Macros</h2></div>
+            <p class="field-help">Type a backslash trigger in any field (e.g. <span class="mono">\rem</span>) followed by a
+              space, Enter, or Tab to expand it. Expansions may span multiple lines.</p>
+            <div class="add-macro">
+              <input class="input mono" type="text" id="new-macro-trigger" placeholder="\trigger" autocomplete="off">
+              <textarea class="textarea" id="new-macro-expansion" rows="1" placeholder="Expansion text (Shift+Enter for a new line)"></textarea>
+              <button class="btn green" id="btn-add-macro">Add</button>
+            </div>
+            <div class="macro-list" id="macro-list"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+    </div><!-- /.app -->
+  </div><!-- /.shell -->
+
+  <!-- ============ INTEGRATION DRAWERS ============
+       Setup for each integration slides in from the right, over whatever page
+       is showing - opened from its Settings tile, from the Connections list in
+       the sidebar, or from a D365 error mid-note - so fixing a connection never
+       means leaving the note in hand, and the page underneath never moves. One
+       backdrop, one drawer at a time (app.js: openDrawer / closeDrawer). -->
+  <div class="drawer-backdrop hidden" id="drawer-backdrop"></div>
+
+  <!-- Call transfer (the old Call Triage page) -->
+  <aside class="drawer hidden" id="drawer-transfer" data-drawer="transfer" data-feature="transfer"
+         role="dialog" aria-modal="true" aria-labelledby="drawer-transfer-title">
+    <div class="drawer-head">
+      <span class="integ-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg></span>
+      <div class="drawer-titles">
+        <h3 id="drawer-transfer-title">Transfer call <span class="integ-vendor">to a troubleshooting queue</span></h3>
+      </div>
+      <button class="icon-btn" data-drawer-close title="Close (Esc)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="drawer-body" data-no-dirty-except="tr-url">
+      <div id="tr-main">
+        <div class="tr-meta">
+          <div><span class="tr-k">Caller ID (ANI)</span><span class="tr-v" id="tr-ani">--</span></div>
+          <div><span class="tr-k">Active call</span><span class="tr-v" id="tr-call">None captured</span></div>
+          <div><span class="tr-k">Contact name</span><span class="tr-v" id="tr-contact">--</span></div>
+          <div><span class="tr-k">Case number</span><span class="tr-v" id="tr-case">--</span></div>
+        </div>
+        <p class="field-help" id="tr-warn" hidden></p>
+        <div class="tr-error" id="tr-error" role="alert" hidden>
+          <strong>Transfer failed</strong>
+          <p id="tr-error-text"></p>
+          <button type="button" class="btn small" id="btn-tr-error-close">Dismiss</button>
+        </div>
+        <p class="field-help">Contact name and case number come from the Note Generator
+          (Contact Name and Case ID), so type them there. The case must be CAS plus 7 digits.</p>
+        <div class="stack">
+          <div>
+            <label class="label" for="tr-equip">Equipment / Category</label>
+            <select class="select" id="tr-equip" data-no-dirty><option value="">-- Select Equipment / Category --</option></select>
+            <div class="field-help" id="tr-guess" hidden></div>
+          </div>
+          <div>
+            <label class="label">Destination queues</label>
+            <div class="field-help" id="tr-prompt">Select an equipment type to list its queues.</div>
+            <div class="tr-queues" id="tr-queues"></div>
+            <div class="btn-row">
+              <button type="button" class="btn small" id="btn-tr-page"
+                title="Open the company's Call Triage page for this call in your browser, filled in; pick the queue there and it transfers from your browser, as it does inside MAX">Open the transfer page in my browser instead</button>
+            </div>
+          </div>
+        </div>
+        <details class="tr-setup" id="tr-setup">
+          <summary>Transfer setup</summary>
+          <label class="label" for="tr-url">Transfer service address</label>
+          <input class="input" type="text" id="tr-url" placeholder="https://planmecawiki.com/tools/signal.php" autocomplete="off" spellcheck="false">
+          <div class="field-help">The address the old Call Triage page posted to (its signal.php).
+            The call's ID reaches TickAssist when the CXone screen pop adds
+            <span class="mono">&amp;contactId={CONTACTID}</span> to
+            <span class="mono">/call?phone={ANI}</span>.</div>
+          <button type="button" class="btn small indigo" id="btn-save-transfer">Save</button>
+        </details>
+      </div>
+      <div id="tr-done" class="tr-done" hidden>
+        <h4>Transfer request sent</h4>
+        <p>Call sent to <strong id="tr-done-queue">--</strong></p>
+        <p>Associated case: <strong id="tr-done-case">--</strong></p>
+        <p class="hint" id="tr-done-reply"></p>
+        <button type="button" class="btn small" id="btn-tr-again">Start new intake</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Incoming calls (CXone MAX via RingCentral) -->
+  <aside class="drawer hidden" id="drawer-calls" data-drawer="calls" data-feature="calls"
+         role="dialog" aria-modal="true" aria-labelledby="drawer-calls-title">
+    <div class="drawer-head">
+      <span class="integ-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.18 2 2 0 0 1 4.08 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.1 9.9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+      <div class="drawer-titles">
+        <h3 id="drawer-calls-title">Incoming calls <span class="integ-vendor">CXone MAX</span></h3>
+        <span class="integ-status" data-integ-status="calls"><span class="dot"></span><span class="integ-state"></span></span>
+      </div>
+      <button class="icon-btn" data-drawer-close title="Close (Esc)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <p class="settings-hint">Reads the caller's number off the MAX window
+        and its desktop notifications, and puts it in <b>Phone Number</b>
+        &mdash; only when that field is empty, so a note in progress is never
+        overwritten.</p>
+      <div class="stack">
+        <label class="switch-row">
+          <span class="switch-text">
+            <span class="switch-label">Fill the phone number from incoming calls</span>
+            <span class="switch-desc">Off stops reading MAX on this PC. A CXone screen pop still comes through.</span>
+          </span>
+          <input type="checkbox" class="switch" id="cw-enabled">
+        </label>
+        <div class="cw-status" id="cw-status" role="status">Checking&hellip;</div>
+        <div class="btn-row">
+          <button type="button" class="btn small" id="btn-cw-refresh"
+                  title="Restart the window reader and re-read MAX">Refresh reader</button>
+          <button type="button" class="btn small" id="btn-cw-test"
+                  title="Send a made-up call through TickAssist and report what the reader can see">Test</button>
+        </div>
+        <div class="cw-status cw-diag" id="cw-diag" role="status" hidden></div>
+        <div>
+          <label class="label" for="cw-max-url">MAX address</label>
+          <div class="btn-row">
+            <input class="input" type="text" id="cw-max-url" autocomplete="off" spellcheck="false"
+                   placeholder="https://cxone.niceincontact.com">
+            <select class="input" id="cw-max-browser" aria-label="Browser for MAX">
+              <option value="auto">Chrome or Edge</option>
+              <option value="chrome">Chrome</option>
+              <option value="edge">Edge</option>
+            </select>
+            <button type="button" class="btn small" id="btn-cw-openmax"
+                    title="Open MAX in its own window that TickAssist can read even when it is minimized or behind other windows">Open MAX</button>
+          </div>
+          <div class="field-help">Start MAX with this button (or the &ldquo;TickAssist - Open MAX&rdquo; desktop shortcut)
+            and TickAssist reads it even when minimized or hidden. Sign in to MAX in that window once.</div>
+        </div>
+        <div>
+          <label class="label" for="cw-match">Window keywords</label>
+          <input class="input" type="text" id="cw-match" autocomplete="off" spellcheck="false"
+                 placeholder="MAX, niceincontact, CXone, Mpower">
+          <div class="field-help">A window is read when its title <b>starts</b> with
+            one of these words; a notification, when its text contains one.</div>
+        </div>
+        <div>
+          <label class="label" for="cw-ignore">Never use these numbers</label>
+          <input class="input mono" type="text" id="cw-ignore" autocomplete="off" spellcheck="false"
+                 placeholder="e.g. your team's main line">
+          <div class="field-help">Your own lines, or anything MAX shows that
+            is not the caller. Separate with commas.</div>
+        </div>
+        <div data-feature="caller_type">
+          <label class="label" for="cw-rules">Caller type rules</label>
+          <textarea class="textarea mono small" id="cw-rules" rows="5" spellcheck="false"
+                    placeholder="Dealer = Dealer"></textarea>
+          <div class="field-help">One per line: <code>text in MAX = Contact Type</code>.
+            Read from what appears with the call (the skill, e.g.
+            <code>FI-Dealer Support</code>), top rule first. A word in
+            capitals, like <code>IT</code>, matches only in capitals.</div>
+        </div>
+        <details class="fold">
+          <summary>Screen pop (for a CXone admin)</summary>
+          <p class="settings-hint">More reliable than reading the screen, if
+            your admin will set it up: a Studio <code>POPURL</code> or
+            <code>RUNAPP</code> action pointed at
+            <code id="cw-pop-url">http://localhost:8765/call?phone={ANI}</code>
+            sends the caller straight here. Add <code>&amp;skill={SKILLNAME}</code>
+            to set Contact Type too.</p>
+        </details>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn indigo" id="btn-save-callwatch">Save</button>
+      <button class="btn" data-drawer-close>Close</button>
+    </div>
+  </aside>
+
+  <!-- Dynamics 365 -->
+  <aside class="drawer hidden" id="drawer-d365" data-drawer="d365" data-feature="d365"
+         role="dialog" aria-modal="true" aria-labelledby="drawer-d365-title">
+    <div class="drawer-head">
+      <span class="integ-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M3 13h18"/></svg></span>
+      <div class="drawer-titles">
+        <h3 id="drawer-d365-title">Dynamics 365</h3>
+        <span class="integ-status" data-integ-status="d365"><span class="dot"></span><span class="integ-state"></span></span>
+      </div>
+      <button class="icon-btn" data-drawer-close title="Close (Esc)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <p class="settings-hint">Signed in, <b>New D365 Case</b> creates the case
+        itself - customer, title and description - fills in the Case ID and
+        adds the note and photos to its timeline, and <b>Send to D365</b> adds
+        a note to an existing case. TickAssist acts as you, with your own D365
+        permissions. Signed out, both work the old way: a prefilled form and
+        the clipboard.</p>
+      <div class="stack">
+        <div class="cw-status" id="d365-status" role="status">Not set up yet.</div>
+        <div>
+          <label class="label" for="d365-org">D365 URL</label>
+          <input class="input mono small" type="text" id="d365-org" spellcheck="false"
+                 placeholder="https://yourorg.crm.dynamics.com">
+        </div>
+        <div class="row-2">
+          <div>
+            <label class="label" for="d365-tenant">Tenant ID</label>
+            <input class="input mono small" type="text" id="d365-tenant" spellcheck="false" autocomplete="off">
+          </div>
+          <div>
+            <label class="label" for="d365-client">Client (Application) ID</label>
+            <input class="input mono small" type="text" id="d365-client" spellcheck="false" autocomplete="off">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn green" id="btn-d365-signin" title="Saves these settings, then opens the Microsoft sign-in in a new tab">Sign in</button>
+          <button class="btn hidden" id="btn-d365-test" title="Check the connection and read the case form's required fields">Test</button>
+          <button class="btn hidden" id="btn-d365-signout">Sign out</button>
+        </div>
+        <details class="fold" id="d365-case-settings">
+          <summary>New case defaults</summary>
+          <div class="stack drawer-fold">
+            <div class="row-2">
+              <div>
+                <label class="label" for="d365-casetype">Case Type</label>
+                <select class="select" id="d365-casetype"><option value="">(leave blank)</option></select>
+              </div>
+              <div>
+                <label class="label" for="d365-origin">Origin</label>
+                <select class="select" id="d365-origin"><option value="">(leave blank)</option></select>
+              </div>
+            </div>
+            <div class="field-help" id="d365-choices-help">Press <b>Test</b> once signed in to load your org's choices.</div>
+            <div>
+              <label class="label" for="d365-custmode">Customer on the case</label>
+              <select class="select" id="d365-custmode">
+                <option value="account">The contact's account (contact as Primary Contact)</option>
+                <option value="contact">The contact</option>
+              </select>
+            </div>
+            <div>
+              <label class="label" for="d365-extra">Other case fields (JSON)</label>
+              <textarea class="textarea mono small" id="d365-extra" rows="3" spellcheck="false"
+                        placeholder='{"prioritycode": 2}'></textarea>
+              <div class="field-help" id="d365-required-help">Anything else your case form requires, by its D365 field name.</div>
+            </div>
+            <label class="check-row"><input type="checkbox" id="d365-html" checked>
+              <span>Send notes as rich text (keeps line breaks)</span></label>
+          </div>
+        </details>
+        <details class="fold">
+          <summary>Setup for IT (one time)</summary>
+          <div class="settings-hint drawer-fold">
+            In Microsoft Entra ID &gt; App registrations, register an app
+            (single tenant), then:
+            <ol class="d365-steps">
+              <li><b>Authentication</b> &gt; Add a platform &gt; <b>Mobile and desktop
+                applications</b>, redirect URI
+                <code>http://localhost/d365/callback</code></li>
+              <li>Same page: <b>Allow public client flows</b> = Yes</li>
+              <li><b>API permissions</b> &gt; Add &gt; Dynamics CRM &gt; Delegated
+                &gt; <code>user_impersonation</code> (grant admin consent if
+                users can't consent themselves)</li>
+            </ol>
+            No client secret is needed. Put the <b>Directory (tenant) ID</b> and
+            <b>Application (client) ID</b> from its Overview page above.
+          </div>
+        </details>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn indigo" id="btn-d365-save">Save</button>
+      <button class="btn" data-drawer-close>Close</button>
+    </div>
+  </aside>
+
+  <!-- Google Sheet - Imaging Package lookup -->
+  <aside class="drawer hidden" id="drawer-sheet" data-drawer="sheet" data-feature="sheet"
+         role="dialog" aria-modal="true" aria-labelledby="drawer-sheet-title">
+    <div class="drawer-head">
+      <span class="integ-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg></span>
+      <div class="drawer-titles">
+        <h3 id="drawer-sheet-title">Google Sheets <span class="integ-vendor">Lookups</span></h3>
+        <span class="integ-status" data-integ-status="sheet"><span class="dot"></span><span class="integ-state"></span></span>
+      </div>
+      <button class="icon-btn" data-drawer-close title="Close (Esc)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <p class="settings-hint">Add as many sheets as you like. Each one is looked
+        up by a field in the Note Generator (Imaging Package, Serial Number, Device
+        Type, ...): type that value and TickAssist fills the other fields from the
+        matching row. Share each sheet as &ldquo;Anyone with the link can view&rdquo;
+        (or File &rarr; Share &rarr; Publish to web). TickAssist only reads them.</p>
+      <div class="stack">
+        <div id="sheet-sources" class="sheet-sources"></div>
+        <div class="btn-row"><button class="btn small" id="btn-sheet-add" type="button">+ Add a sheet</button></div>
+        <div class="field-help">Columns whose header already reads like a field (OS, Romexis Ver, DIDAPI, Device Firmware, Reco Unit, ...) map by themselves; list only the ones that don't in a sheet's mapping. Fields: imaging_package, os_version, device_type, serial_number, device_firmware, device_tool_version, didapi, romexis, reco_os, reco_pc, reco_firmware, part_rec, error_info, dealer_name, contact, contact_type, problem, next_steps, outcome.</div>
+        <label class="check-row"><input type="checkbox" id="sheet-check-on">
+          <span>Outline values in the note that differ from the sheet row for the Imaging Package</span></label>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn indigo" id="btn-sheet-save" type="button">Save</button>
+      <button class="btn" data-drawer-close>Close</button>
+    </div>
+  </aside>
+
+  <!-- Feature switches (features.js) -->
+  <aside class="drawer hidden" id="drawer-features" data-drawer="features"
+         role="dialog" aria-modal="true" aria-labelledby="drawer-features-title">
+    <div class="drawer-head">
+      <span class="integ-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+      <div class="drawer-titles">
+        <h3 id="drawer-features-title">Features</h3>
+        <span class="feat-lock" id="feat-lock"></span>
+      </div>
+      <button class="icon-btn" data-drawer-close title="Close (Esc)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <p class="settings-hint" id="feat-hint">Which add-on features this copy of
+        TickAssist offers. A feature that is off is hidden everywhere and its
+        server routes are refused. Switch them here and press Save.</p>
+      <div class="feat-msg error hidden" id="feat-restart" role="alert"></div>
+      <div class="feat-list" id="feat-list"></div>
+      <div class="stack" id="feat-controls">
+        <div class="feat-msg hidden" id="feat-msg" role="alert"></div>
+        <button class="btn-link" type="button" id="btn-feat-reset">Use the office defaults on this PC</button>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn indigo" id="btn-save-features">Save Features</button>
+      <button class="btn" data-drawer-close>Close</button>
+    </div>
+  </aside>
+
+  <script type="module" src="/static/js/main.js"></script>
+  <!-- slot:scripts -->
+</body>
+</html>

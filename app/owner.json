@@ -1,0 +1,32 @@
+{
+  "defaults": {
+    "calls": true,
+    "caller_type": true,
+    "known_caller": true,
+    "case_from_max": true,
+    "photos": true,
+    "d365": false,
+    "sheet": true,
+    "polish": true,
+    "transfer": true
+  },
+  "settings": {
+    "call_watch_enabled": "1",
+    "call_watch_match": "MAX, niceincontact, CXone, Mpower",
+    "call_watch_ignore": "",
+    "call_watch_rules": "Dealer = Dealer\nIT = IT\nSales = Sales\nMilitary = Military\nEnd User = End User",
+    "d365_org_url": "https://planmecausprod.crm.dynamics.com",
+    "d365_tenant_id": "",
+    "d365_client_id": "",
+    "d365_case_type": "",
+    "d365_case_origin": "",
+    "d365_case_extra": "",
+    "d365_customer_mode": "account",
+    "d365_note_html": "1",
+    "llm_provider": "gemini",
+    "llm_model": "gemini-2.5-flash"
+  },
+  "patches": [
+    "lite-calls-and-transfer-on"
+  ]
+}

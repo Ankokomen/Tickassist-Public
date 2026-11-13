@@ -1,0 +1,2623 @@
+/* TickAssist - corporate design system.
+   Brand accent is the true Planmeca logo blue (#244190, sampled from the
+   logo asset). Layout: top app bar + left nav + content, in dark, light and
+   high-contrast themes ("auto" follows Windows). Self-hosted IBM Plex
+   typeface; no external CDN, fonts, or runtime. */
+
+/* IBM Plex Sans/Mono - latin subsets vendored under /static/fonts. */
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400;
+  font-display: swap; src: url("/static/fonts/plexsans-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 500;
+  font-display: swap; src: url("/static/fonts/plexsans-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 600;
+  font-display: swap; src: url("/static/fonts/plexsans-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 700;
+  font-display: swap; src: url("/static/fonts/plexsans-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400;
+  font-display: swap; src: url("/static/fonts/plexmono-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500;
+  font-display: swap; src: url("/static/fonts/plexmono-500.woff2") format("woff2");
+}
+
+:root {
+  --slate-950: #020617;
+  --slate-900: #0f172a;
+  --slate-850: #141e34;
+  --slate-800: #1e293b;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-100: #f1f5f9;
+
+  /* Planmeca blue ramp, anchored at the logo's #244190. */
+  --brand-700: #1C3373;
+  --brand-600: #244190;
+  --brand-500: #3B5CC0;
+  --brand-400: #8CA2E5;
+  /* RGB channels of --brand-600, for translucent accents. Keep in sync. */
+  --brand-rgb: 36, 65, 144;
+
+  --topbar-h: 52px;
+  --sidebar-w: 212px;
+
+  --emerald-600: #059669;
+  --emerald-500: #10b981;
+  --emerald-400: #34d399;
+  --emerald-300: #6ee7b7;
+
+  --red-600: #dc2626;
+  --red-500: #ef4444;
+  --red-400: #f87171;
+
+  --amber-500: #f59e0b;
+  --amber-400: #fbbf24;
+
+  /* Call-type series. Two categorical hues, fixed to the rotation they name -
+     never reassigned by rank. Troubleshooting keeps the brand blue; First
+     Impression takes a rose that is deliberately NOT one of the status hues
+     (green/amber/red stay reserved for resolution state). Measured against
+     each theme surface with the data-viz checks: rose vs brand blue is
+     OKLab dE 30.0 normal / 10.6 under simulated protanopia, both well clear
+     of the floors. Each theme re-steps them for its own surface below. */
+  --call-first: #EC4899;
+  --call-trouble: var(--brand-500);
+
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --ring: 0 0 0 2px rgba(59, 92, 192, 0.55);
+}
+
+/* ======================================================================== */
+/*  Themes. Default (no data-theme, or "dark") uses :root above. Light and   */
+/*  high-contrast redefine the palette; contrast ratios target WCAG AA+.     */
+/* ======================================================================== */
+
+/* ---- Light (corporate default via "auto" on light-mode Windows) --------- */
+html[data-theme="light"] {
+  --slate-950: #f4f6f9;  /* page background (cool corporate grey) */
+  --slate-900: #ffffff;  /* panels / topbar / sidebar / menus */
+  --slate-850: #ffffff;
+  --slate-800: #dfe5ee;  /* borders */
+  --slate-700: #c3cddb;  /* stronger borders / outline buttons */
+  --slate-600: #8fa0b5;
+  --slate-500: #5d6b80;  /* placeholder / faint text */
+  --slate-400: #42506a;  /* labels / muted text */
+  --slate-300: #202c46;  /* strong secondary text */
+  --slate-100: #101828;  /* primary text */
+  --brand-400: #244190;  /* accent text on white = the logo blue itself */
+  --ring: 0 0 0 2px rgba(var(--brand-rgb), 0.30);
+  /* Both series clear 3:1 on white, so the dark steps carry over unchanged. */
+}
+html[data-theme="light"] .input,
+html[data-theme="light"] .select,
+html[data-theme="light"] .textarea { background: #ffffff; border-color: #c3cddb; }
+html[data-theme="light"] .input:read-only { background: #f4f6f9; }
+html[data-theme="light"] .panel.form-panel { background: #fbfcfe; }
+html[data-theme="light"] .managed-row,
+html[data-theme="light"] .macro-row,
+html[data-theme="light"] .icon-btn { background: #f8fafc; border-color: #dfe5ee; }
+html[data-theme="light"] .combo-item { color: #101828; }
+html[data-theme="light"] .combo-item:hover,
+html[data-theme="light"] .combo-item.active,
+html[data-theme="light"] .nav-item.active { color: var(--brand-600); }
+/* Colored labels/accents need darker shades on white. Measured contrast on
+   the form panel (#fbfcfe): red 8.1:1, amber 6.9:1, green 7.5:1. */
+html[data-theme="light"] .label.green,
+html[data-theme="light"] .select.green-text { color: #065f46; }
+html[data-theme="light"] .label.red { color: #991b1b; }
+html[data-theme="light"] .label.amber { color: #92400e; }
+/* Preview blocks: light tints with dark-enough text. */
+html[data-theme="light"] .block.env { background: #f4f6f9; border-color: #dfe5ee; color: #42506a; }
+html[data-theme="light"] .block.problem { background: #f4f6f9; }
+html[data-theme="light"] .block.workflow,
+html[data-theme="light"] .block.nextsteps { background: #f8fafc; }
+html[data-theme="light"] .block.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+html[data-theme="light"] .block.part { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+html[data-theme="light"] .block.outcome { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+
+/* ---- High contrast (dark, accessibility) -------------------------------- */
+html[data-theme="contrast"] {
+  --slate-950: #000000;
+  --slate-900: #0a0a0a;
+  --slate-850: #141414;
+  --slate-800: #3a3a3a;  /* borders stay clearly visible */
+  --slate-700: #4a4a4a;
+  --slate-600: #6a6a6a;
+  --slate-500: #c8c8c8;  /* brighter faint text */
+  --slate-400: #e0e0e0;  /* labels (13:1 on black) */
+  --slate-300: #f2f2f2;
+  --slate-100: #ffffff;  /* primary text (21:1 on black) */
+  --brand-700: #3D5FD6;
+  --brand-600: #4C6FE8;  /* brighter Planmeca blue for buttons on black */
+  --brand-500: #7391F2;
+  --brand-400: #A9BCF8;  /* accent text (~10:1 on black) */
+  --brand-rgb: 76, 111, 232;
+  --ring: 0 0 0 2px rgba(115, 145, 242, 0.75);
+  /* This theme brightens the brand blue, which pulls a violet or purple right
+     on top of it (dE 11 normal - a hard fail). The rose is re-stepped lighter
+     to hold dE 21.5 normal / 9.1 protan against #7391F2 on near-black. */
+  --call-first: #F472B6;
+}
+
+/* ---- Theme picker (Settings) -------------------------------------------- */
+/* Appearance has a row to itself, under Integrations. */
+.appearance-panel { grid-column: 1 / -1; }
+.theme-picker { display: flex; gap: 12px; flex-wrap: wrap; }
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--slate-700);
+  background: none;
+  color: var(--slate-300);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.theme-option:hover { border-color: var(--slate-600); }
+.theme-option.active {
+  border-color: var(--brand-500);
+  background: rgba(var(--brand-rgb), 0.12);
+  color: var(--slate-100);
+}
+.theme-swatch {
+  width: 34px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid var(--slate-600);
+  flex-shrink: 0;
+}
+.swatch-auto { background: linear-gradient(135deg, #101828 50%, #ffffff 50%); }
+.swatch-dark { background: linear-gradient(135deg, #020617 58%, #244190 58%); }
+.swatch-light { background: linear-gradient(135deg, #ffffff 58%, #244190 58%); }
+.swatch-contrast { background: linear-gradient(135deg, #000000 58%, #4C6FE8 58%); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--slate-950);
+  color: var(--slate-100);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono { font-family: var(--font-mono); }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: var(--slate-950); }
+::-webkit-scrollbar-thumb { background: var(--slate-700); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--slate-600); }
+
+a { color: var(--brand-400); text-decoration: none; }
+
+/* ---- App shell: top app bar + left nav + content ------------------------ */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.topbar {
+  height: var(--topbar-h);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px 0 0;
+  background: var(--slate-900);
+  border-bottom: 1px solid var(--slate-800);
+  position: relative;
+  z-index: 40;
+}
+/* Planmeca-blue brand edge along the very top of the app. */
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-600), var(--brand-500));
+}
+
+/* The brand zone spans exactly the sidebar column so the logo anchors the
+   nav rail below it. */
+.topbar-brand {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+.brand-logo { width: 100%; height: auto; display: block; }
+/* The wordmark is Planmeca blue; render it white on the dark themes. */
+html:not([data-theme="light"]) .brand-logo { filter: brightness(0) invert(1); }
+/* Title + descriptor share a text baseline (box-centering two different font
+   sizes leaves the smaller one riding visibly high). line-height:1 hugs the
+   text so flex-centering centers the glyphs themselves against the logo. */
+.topbar-lockup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.topbar-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; white-space: nowrap; }
+.topbar-sub {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--slate-500);
+  padding-left: 12px;
+  border-left: 1px solid var(--slate-800);
+  white-space: nowrap;
+}
+.topbar-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+
+/* Standing rotation switch. Both rotations stay legible at all times - the
+   selected one is filled, so the current mode is readable at a glance rather
+   than inferred from a bare on/off switch. */
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--slate-850);
+  border: 1px solid var(--slate-800);
+  border-radius: 999px;
+}
+.mode-opt {
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--slate-500);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mode-opt:hover { color: var(--slate-300); }
+.mode-opt[aria-checked="true"] {
+  background: var(--brand-600);
+  color: #ffffff;
+}
+/* Selected pill wears its own series colour: rose on First Impressions, brand
+   blue on Troubleshooting. Keyed off the rotation flag on <body> rather than
+   the button's label, so renaming the rotation cannot silently break it (it
+   already did once, when the label gained its plural). */
+body[data-rotation="first-impression"] [data-call-type-group] .mode-opt[aria-checked="true"] {
+  background: var(--call-first);
+}
+.mode-opt:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* The Case Entry copy of the rotation control. Right-aligned in the panel
+   header by the header's own space-between, and labelled so it reads as the
+   rotation of this ticket rather than the standing one in the topbar. */
+.case-rotation {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+}
+.case-rotation-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+  white-space: nowrap;
+}
+.case-rotation .mode-opt { font-size: 11px; padding: 5px 10px; }
+
+/* On the First Impressions rotation the whole bar takes a wash of that series
+   colour, so which rotation is being logged is answerable from any page
+   without reading the toggle. The tint is layered OVER the theme's own topbar
+   colour, so it holds up in light, dark, and high-contrast alike. */
+body[data-rotation="first-impression"] .topbar {
+  background:
+    linear-gradient(0deg, rgba(236, 72, 153, 0.14), rgba(236, 72, 153, 0.14)),
+    var(--slate-900);
+  border-bottom-color: var(--call-first);
+}
+.topbar-meta {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+#upd-version { user-select: none; }
+#btn-theme-quick:hover {
+  background: rgba(var(--brand-rgb), 0.12);
+  color: var(--brand-400);
+  border-color: rgba(var(--brand-rgb), 0.4);
+}
+
+.app {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--slate-900);
+  border-right: 1px solid var(--slate-800);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 12px;
+  overflow-y: auto;
+}
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+  padding: 0 12px 10px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  color: var(--slate-400);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover { background: var(--slate-800); color: var(--slate-100); }
+.nav-item.active {
+  background: rgba(var(--brand-rgb), 0.12);
+  color: var(--slate-100);
+}
+/* Corporate active indicator: a brand-blue bar on the leading edge. */
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--brand-500);
+}
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.nav-spacer { flex: 1; }
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+/* ---- Pages -------------------------------------------------------------- */
+.page { display: none; padding: 24px 28px; }
+.page.active { display: block; }
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.page-title { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.page-desc { color: var(--slate-400); font-size: 13px; margin-top: 4px; }
+.page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Shared card header: title left, contextual actions right. */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 13px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--slate-800);
+}
+.panel-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate-400);
+}
+.panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* First Impressions handle timer. Sits between the preview title and the
+   action row (the header's own space-between centres it), dressed as a
+   greyed-out read-only field to match the Timestamp input - and like it,
+   a double-click resets it (wired in app.js). Monospace with tabular
+   digits so the readout doesn't jitter as it counts. --fi-glow is driven
+   0 -> 1 by app.js across the 10-to-15-minute window; colour, border and
+   shadows ramp continuously with it - a steady phosphor build in the
+   rotation's rose. The ramp itself never blinks; only from 17 minutes
+   does app.js add .pulse, a slow breathing of the glow alone (digits and
+   border hold steady) - a gentle swell, never a flash at a tech mid-call. */
+.fi-timer {
+  --fi-glow: 0;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid color-mix(in srgb, var(--call-first) calc(var(--fi-glow) * 55%), var(--slate-800));
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--call-first) calc(var(--fi-glow) * 100%), var(--slate-500));
+  /* Channels of --call-first (#EC4899), same as the topbar's rotation wash. */
+  text-shadow:
+    0 0 calc(var(--fi-glow) * 6px)  rgba(236, 72, 153, calc(var(--fi-glow) * 0.85)),
+    0 0 calc(var(--fi-glow) * 16px) rgba(236, 72, 153, calc(var(--fi-glow) * 0.55));
+  box-shadow: 0 0 calc(var(--fi-glow) * 14px) rgba(236, 72, 153, calc(var(--fi-glow) * 0.35));
+  transition: color 1s linear, text-shadow 1s linear,
+              border-color 1s linear, box-shadow 1s linear;
+  margin-left: 2px;
+  margin-right: auto;
+}
+/* Same greyed surface the read-only Timestamp input gets on white. */
+html[data-theme="light"] .fi-timer {
+  background: #f4f6f9;
+  border-color: color-mix(in srgb, var(--call-first) calc(var(--fi-glow) * 55%), #c3cddb);
+}
+/* From 17:00 the full phosphor breathes. The swing is deliberately wide so
+   it reads across the room - peak brighter than the steady glow, trough
+   nearly out - and the border plus an inset rose wash join the cycle (the
+   wash is an inset shadow, not a background, so both themes keep their own
+   field surface). What keeps it calm is the shape, not the size: a slow
+   ease-in-out swell with the digit colour pinned outside the keyframes, so
+   the readout itself never dims - a breath, never a strobe. */
+.fi-timer.pulse { animation: fi-timer-breathe 2s ease-in-out infinite; }
+@keyframes fi-timer-breathe {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(236, 72, 153, 1), 0 0 22px rgba(236, 72, 153, 0.75);
+    box-shadow: 0 0 18px rgba(236, 72, 153, 0.55),
+                inset 0 0 18px rgba(236, 72, 153, 0.30);
+    border-color: var(--call-first);
+  }
+  50% {
+    text-shadow: 0 0 3px rgba(236, 72, 153, 0.30), 0 0 8px rgba(236, 72, 153, 0.15);
+    box-shadow: 0 0 3px rgba(236, 72, 153, 0.10),
+                inset 0 0 4px rgba(236, 72, 153, 0.05);
+    border-color: color-mix(in srgb, var(--call-first) 40%, var(--slate-800));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fi-timer.pulse { animation: none; }
+}
+
+/* ---- Generator two-column ---------------------------------------------- */
+.generator {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--slate-900);
+  border: 1px solid var(--slate-800);
+  border-radius: 10px;
+  padding: 20px 22px;
+}
+
+.panel.form-panel { background: rgba(2, 6, 23, 0.5); }
+
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ---- Form controls ------------------------------------------------------ */
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate-400);
+  margin: 0 0 6px 2px;
+}
+.label.red { color: var(--red-400); }
+.label.green { color: var(--emerald-400); }
+.label.amber { color: var(--amber-400); }
+.label .hint { font-size: 11px; color: var(--slate-500); font-weight: 400; }
+
+/* Section dividers that break the long form into scannable groups. */
+.form-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+.form-divider::after { content: ""; flex: 1; height: 1px; background: var(--slate-800); }
+
+.input, .select, .textarea {
+  width: 100%;
+  padding: 11px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--slate-800);
+  border-radius: 8px;
+  color: var(--slate-100);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.input::placeholder, .textarea::placeholder { color: var(--slate-500); }
+.input:focus, .select:focus, .textarea:focus { box-shadow: var(--ring); border-color: var(--brand-500); }
+.input.green:focus, .textarea.green:focus { box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.6); border-color: var(--emerald-500); }
+.input.red:focus { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.6); border-color: var(--red-500); }
+.textarea.amber:focus { box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.6); border-color: var(--amber-500); }
+.textarea { resize: vertical; min-height: 64px; }
+.input.small, .textarea.small { padding: 8px 10px; font-size: 13px; border-radius: 7px; }
+.input:read-only { color: var(--slate-500); cursor: not-allowed; }
+
+/* Repeat-caller notice: a full-width line of amber text under the contact row,
+   not a boxed alert. It is context worth catching the eye, not a fault, and it
+   stays inline so it cannot interrupt typing while someone is on the line. */
+.repeat-caller {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  margin-top: -4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--amber-400);
+}
+.repeat-caller svg {
+  width: 14px; height: 14px; flex-shrink: 0;
+  align-self: center;
+}
+/* The detail can run long; it truncates rather than wrapping the View link
+   away from the end of the line. */
+.repeat-caller .rc-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.repeat-caller .rc-name { font-weight: 700; }
+.repeat-caller .rc-meta { color: var(--amber-400); opacity: 0.85; }
+.repeat-caller .btn-link {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--amber-400);
+  flex-shrink: 0;
+  text-decoration: underline;
+}
+.repeat-caller .rc-close {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+.repeat-caller .rc-close:hover { opacity: 1; }
+.repeat-caller .rc-close svg { width: 12px; height: 12px; }
+.repeat-caller .rc-close:focus-visible { outline: none; box-shadow: var(--ring); }
+
+html[data-theme="light"] .repeat-caller,
+html[data-theme="light"] .repeat-caller .btn-link,
+html[data-theme="light"] .repeat-caller .rc-meta { color: #92400e; }
+#dateTime { cursor: pointer; }
+.select option { background: var(--slate-900); color: var(--slate-100); }
+.select.green-text { color: var(--emerald-300); font-weight: 700; }
+
+/* Environment block */
+.env-block {
+  background: rgba(var(--brand-rgb), 0.12);
+  border: 1px solid rgba(var(--brand-rgb), 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.env-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate-300);
+  flex-shrink: 0;
+}
+
+/* The heading row: the collapsible header, then the report import, which stays
+   reachable while the section is collapsed (importing opens it again). */
+.env-headrow { display: flex; align-items: center; gap: 10px; }
+.btn.small.env-import { flex-shrink: 0; padding: 4px 10px; font-size: 11.5px; }
+
+/* Collapsible header. A button, so it is keyboard-reachable and announces its
+   expanded state; styled flat so it still reads as a section heading. */
+.env-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.env-head:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 6px; }
+.env-chevron {
+  width: 15px; height: 15px; flex-shrink: 0;
+  color: var(--slate-400);
+  transition: transform 0.18s ease;
+}
+.env-block.collapsed .env-chevron { transform: rotate(-90deg); }
+.env-block.collapsed .env-body { display: none; }
+/* Summary of what is filled in, shown only while collapsed. */
+.env-summary {
+  font-size: 11.5px;
+  color: var(--slate-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: auto;
+}
+.env-block:not(.collapsed) .env-summary { display: none; }
+.env-body { display: flex; flex-direction: column; gap: 10px; }
+/* Operating systems: toggle chips. Each is still a checkbox (several can be
+   on), laid invisibly over its pill so the keyboard and screen readers get a
+   real one. */
+.chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.chip { position: relative; display: inline-flex; }
+.chip input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  opacity: 0;
+}
+.chip span {
+  padding: 5px 12px;
+  border: 1px solid var(--slate-700);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--slate-400);
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.chip:hover span { border-color: var(--brand-500); color: var(--slate-300); }
+.chip input:checked + span { background: var(--brand-600); border-color: var(--brand-600); color: #ffffff; }
+.chip input:focus-visible + span { box-shadow: var(--ring); }
+/* Offer to use the same package number's row from another sheet section. */
+.chip-row .sheet-alt { margin-left: auto; display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* ---- Combobox (dealer dropdown) ----------------------------------------- */
+.combo { position: relative; }
+.combo-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  background: var(--slate-850);
+  border: 1px solid var(--slate-700);
+  border-radius: 12px;
+  padding: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.9);
+}
+.combo-item {
+  padding: 9px 11px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--slate-200, #e2e8f0);
+}
+.combo-item:hover, .combo-item.active {
+  background: rgba(var(--brand-rgb), 0.2);
+  color: #fff;
+}
+.combo-empty { padding: 10px 11px; font-size: 12px; color: var(--slate-500); }
+
+/* ---- Buttons ------------------------------------------------------------ */
+/* Corporate hierarchy: solid = primary/semantic actions, outlined neutral =
+   secondary actions. All variants share the same box so rows line up. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--slate-700);
+  border-radius: 7px;
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+  cursor: pointer;
+  color: var(--slate-100);
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s, opacity 0.15s;
+}
+.btn:hover { background: var(--slate-800); border-color: var(--slate-600); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn.indigo, .btn.green, .btn.red { color: #fff; border-color: transparent; }
+.btn.indigo { background: var(--brand-600); }
+.btn.indigo:hover { background: var(--brand-500); border-color: transparent; }
+.btn.green { background: var(--emerald-600); }
+.btn.green:hover { background: var(--emerald-500); border-color: transparent; }
+.btn.red { background: var(--red-600); }
+.btn.red:hover { background: var(--red-500); border-color: transparent; }
+.btn.block { width: 100%; padding: 12px; border-radius: 8px; }
+.btn.small { padding: 6px 11px; font-size: 12px; }
+.btn > svg { width: 15px; height: 15px; flex-shrink: 0; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--slate-800);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--slate-400);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.icon-btn:hover { background: rgba(239, 68, 68, 0.15); color: var(--red-400); border-color: rgba(239, 68, 68, 0.4); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* ---- Preview pane ------------------------------------------------------- */
+.edit-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(var(--brand-rgb), 0.12);
+  border: 1px solid rgba(var(--brand-rgb), 0.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--slate-100);
+}
+.edit-banner span { flex: 1; }
+.edit-banner strong { color: var(--brand-400); }
+.edit-banner .icon-btn { width: 28px; height: 28px; }
+.edit-banner .icon-btn svg { width: 14px; height: 14px; }
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--brand-400);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 2px;
+  flex-shrink: 0;
+}
+.btn-link:hover { color: var(--slate-100); }
+
+.preview-title { font-size: 22px; font-weight: 600; margin-bottom: 18px; }
+.preview-title .case { color: var(--brand-400); }
+.preview-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--slate-300);
+  margin-bottom: 14px;
+  min-height: 10px;
+}
+/* Small inline copy button beside the title; neutral (non-delete) hover. */
+.icon-btn.copy-title { width: 26px; height: 26px; border-radius: 6px; }
+.icon-btn.copy-title svg { width: 13px; height: 13px; }
+.icon-btn.copy-title:hover {
+  background: rgba(var(--brand-rgb), 0.12);
+  color: var(--brand-400);
+  border-color: rgba(var(--brand-rgb), 0.4);
+}
+.preview-body { font-family: var(--font-mono); font-size: 13px; line-height: 1.7; display: flex; flex-direction: column; gap: 14px; }
+
+.meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: var(--slate-400); }
+.block {
+  font-size: 12px;
+  border-radius: 12px;
+  padding: 12px;
+}
+.block strong { color: var(--slate-300); }
+.block.env { background: rgba(30, 41, 59, 0.5); border: 1px solid var(--slate-800); color: var(--slate-400); display: flex; flex-direction: column; gap: 4px; }
+.block.error { background: rgba(127, 29, 29, 0.18); border: 1px solid rgba(153, 27, 27, 0.3); color: var(--red-400); }
+.block.part { background: rgba(6, 78, 59, 0.12); border: 1px solid rgba(6, 95, 70, 0.25); color: var(--emerald-500); font-weight: 700; }
+.block.problem { background: var(--slate-800); font-style: italic; }
+.block.workflow { background: rgba(30, 41, 59, 0.5); white-space: pre-wrap; }
+.block.nextsteps { background: rgba(30, 41, 59, 0.5); border-left: 3px solid var(--brand-500); white-space: pre-wrap; }
+.block.outcome { background: rgba(6, 78, 59, 0.2); border: 1px solid rgba(6, 95, 70, 0.3); color: var(--emerald-300); font-weight: 700; white-space: pre-wrap; }
+.block.env strong { color: var(--slate-300); }
+
+.hidden { display: none !important; }
+
+.empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--slate-500);
+  border: 1px dashed var(--slate-800);
+  border-radius: 18px;
+}
+
+/* ---- Settings / dealers ------------------------------------------------- */
+/* One full row of the four working panels (LLM + three lists) on wide
+   screens; 2x2 on medium; single column on narrow (see responsive block). */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+@media (max-width: 1500px) {
+  .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Equal-sized panels regardless of content (prep for the macro-list panel). */
+.settings-grid > .panel {
+  display: flex;
+  flex-direction: column;
+}
+/* Capped + scrollable so a long list scrolls in place instead of growing the
+   page - but sized so the default lists (up to ~11 entries) render without a
+   scrollbar. */
+.managed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.managed-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--slate-800);
+  border-radius: 8px;
+  padding: 9px 14px;
+}
+.managed-row .name { flex: 1; font-weight: 600; font-size: 13px; word-break: break-word; }
+.managed-add { display: flex; gap: 8px; margin-top: 16px; }
+.managed-add .input { flex: 1; min-width: 0; }
+.managed-add .btn { flex-shrink: 0; }
+
+.field-help { font-size: 11px; color: var(--slate-500); margin-top: 6px; }
+
+/* ---- Shorthand macros --------------------------------------------------- */
+.macro-panel { grid-column: 1 / -1; }
+.add-macro {
+  display: grid;
+  grid-template-columns: 170px 1fr auto;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: start;
+}
+/* Starts at single-line height; JS grows it only when content wraps. */
+.add-macro .textarea { min-height: 0; max-height: 220px; resize: none; overflow-y: auto; }
+.macro-nl {
+  color: var(--slate-600);
+  font-family: var(--font-mono);
+}
+.macro-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+.macro-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--slate-800);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.macro-row .trigger {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-400);
+  flex-shrink: 0;
+}
+.macro-row .arrow { color: var(--slate-600); flex-shrink: 0; }
+.macro-row .expansion {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--slate-300);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 760px) {
+  .add-macro { grid-template-columns: 1fr; }
+}
+
+/* ---- Toasts ------------------------------------------------------------- */
+.toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 90; display: flex; flex-direction: column; gap: 8px; }
+/* With a drawer open, toasts sit beside it rather than over its buttons. */
+@media (min-width: 1000px) {
+  body.drawer-open .toast-wrap { right: calc(540px + 24px); }
+}
+.toast {
+  background: var(--brand-600);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 9px;
+  box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.8);
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.red { background: var(--red-500); }
+.toast.green { background: var(--emerald-600); }
+/* Fixed dark neutral: the --slate-700 variable flips to a pale grey in the
+   light theme, which would put this toast's white text on a white chip. */
+.toast.slate { background: #334155; }
+
+/* ---- Modal -------------------------------------------------------------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.8);
+  backdrop-filter: blur(3px);
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal {
+  background: var(--slate-900);
+  border: 1px solid var(--slate-800);
+  border-radius: 16px;
+  padding: 26px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.9);
+  /* Tall pop-ups (like the report import) scroll inside themselves instead of
+     running off the screen. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+.modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.modal p { font-size: 12px; color: var(--slate-400); margin-bottom: 22px; }
+.modal .btn-row .btn { flex: 1; }
+/* A modal that is one large glyph and a button. */
+.modal-emoji { font-size: 96px; line-height: 1.2; text-align: center; margin-bottom: 18px; }
+
+/* The confirm dialog sits above any other modal. */
+#modal { z-index: 80; }
+
+/* Wide modals with a title bar (server report import, Dynamics 365) */
+.note-modal { max-width: 720px; }
+.note-modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.note-modal-head h3 {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Spinner ------------------------------------------------------------ */
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Independent-scroll generator (wide screens) ------------------------ */
+/* The form column scrolls on its own while the Technical Note stays in view. */
+@media (min-width: 1101px) {
+  #page-generator.active {
+    height: calc(100vh - var(--topbar-h));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #page-generator.active .generator {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+  #page-generator.active .generator > .panel {
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  /* Keep the preview title + action buttons pinned while the note scrolls. */
+  #page-generator.active .preview-head {
+    position: sticky;
+    top: -20px; /* cancel the panel's top padding */
+    background: var(--slate-900);
+    margin-top: -20px;
+    padding-top: 20px;
+    z-index: 5;
+  }
+}
+
+/* ---- Settings: hint text and folds -------------------------------------- */
+.settings-hint {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--slate-400);
+  margin-bottom: 14px;
+}
+.settings-hint code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.14);
+}
+/* The less-used part of a panel or drawer, folded away under its summary. */
+.fold { margin-top: 12px; }
+.fold summary {
+  font-size: 12px;
+  color: var(--slate-500);
+  cursor: pointer;
+  user-select: none;
+  width: fit-content;
+}
+.fold summary:hover { color: var(--slate-300); }
+
+/* ---- Responsive --------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .generator { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  /* The icon-rail sidebar is too narrow to host the wordmark; decouple. */
+  .topbar-brand { width: auto; }
+  .brand-logo { width: auto; height: 16px; }
+  .sidebar { width: 62px; padding: 14px 8px; }
+  .nav-item span, .nav-label { display: none; }
+  .nav-item { justify-content: center; }
+  .nav-item.active::before { display: none; }
+  .topbar-sub, .topbar-meta { display: none; }
+  /* The rotation stays visible even here - it changes what gets saved - but
+     tightens up to fit beside the nav rail. */
+  .mode-opt { font-size: 10.5px; padding: 5px 8px; }
+  .page { padding: 18px 16px; }
+  .row-2 { grid-template-columns: 1fr; }
+}
+
+/* ---- Print: Ctrl+P prints just the technical note ----------------------- */
+@media print {
+  body { background: #fff; }
+  .topbar, .sidebar, .form-panel, .preview-head, .edit-banner,
+  .toast-wrap, .modal-backdrop, .drawer, .drawer-backdrop { display: none !important; }
+  .shell { height: auto; }
+  .main { height: auto; overflow: visible; }
+  #page-generator.active { display: block; height: auto; overflow: visible; }
+  .generator { display: block; }
+  #page-generator .panel {
+    border: none;
+    background: #fff;
+    padding: 0;
+    max-height: none;
+    overflow: visible;
+  }
+  #print-area, #print-area * { color: #000 !important; background: #fff !important; }
+  #print-area .block { border: 1px solid #bbb; }
+  .preview-title, .preview-sub { color: #000 !important; }
+  .preview-title .case { color: #000 !important; }
+}
+
+/* ---- Incoming calls (CXone MAX) ----------------------------------------- */
+/* Same inline-line shape as the repeat-caller notice, in brand blue: it is an
+   offer ("this caller is ringing"), not a warning. Shown only when Phone
+   Number already held a different number, so nothing was filled. */
+.incoming-call {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  margin-top: -4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--brand-400);
+}
+.incoming-call svg { width: 14px; height: 14px; flex-shrink: 0; align-self: center; }
+.incoming-call .rc-text {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.incoming-call .rc-name { font-weight: 700; font-family: var(--font-mono); }
+.incoming-call .btn-link {
+  font-size: 12.5px; font-weight: 700; color: var(--brand-400); flex-shrink: 0;
+}
+.incoming-call .rc-close {
+  display: flex; align-items: center; padding: 2px;
+  border: none; background: none; color: inherit;
+  opacity: 0.65; cursor: pointer; flex-shrink: 0; border-radius: 4px;
+}
+.incoming-call .rc-close:hover { opacity: 1; }
+.incoming-call .rc-close svg { width: 12px; height: 12px; }
+.incoming-call .rc-close:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* ---- Checkboxes and switches ----------------------------------------------
+   Drawn by the app rather than the browser, so they match the inputs around
+   them in every theme. A checkbox picks an option; a .switch turns something
+   on or off (a feature, the MAX reader) and sits at the end of its row. */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid var(--slate-600);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.35) center / 13px 13px no-repeat;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+input[type="checkbox"]:hover:not(:disabled) { border-color: var(--brand-500); }
+input[type="checkbox"]:checked {
+  border-color: var(--brand-500);
+  background-color: var(--brand-500);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.6 8.4l2.9 2.9 5.9-6.6'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:focus-visible { outline: none; box-shadow: var(--ring); }
+input[type="checkbox"]:disabled { opacity: 0.45; cursor: not-allowed; }
+html[data-theme="light"] input[type="checkbox"] { background-color: #ffffff; border-color: #8fa0b5; }
+html[data-theme="light"] input[type="checkbox"]:hover:not(:disabled) { border-color: var(--brand-600); }
+html[data-theme="light"] input[type="checkbox"]:checked { background-color: var(--brand-600); border-color: var(--brand-600); }
+
+/* The knob is a background, so it slides with background-position. */
+input[type="checkbox"].switch {
+  width: 36px;
+  height: 20px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--slate-700);
+  background-image: radial-gradient(circle, #ffffff 0 7px, rgba(0, 0, 0, 0.18) 7.5px, transparent 8.5px);
+  background-size: 20px 20px;
+  background-position: 0 50%;
+  transition: background-color 0.18s ease, background-position 0.18s ease, box-shadow 0.15s;
+}
+input[type="checkbox"].switch:hover:not(:disabled) { background-color: var(--slate-600); }
+input[type="checkbox"].switch:checked {
+  background-color: var(--brand-500);
+  background-image: radial-gradient(circle, #ffffff 0 7px, rgba(0, 0, 0, 0.18) 7.5px, transparent 8.5px);
+  background-position: 16px 50%;
+}
+input[type="checkbox"].switch:checked:hover:not(:disabled) { background-color: var(--brand-400); }
+html[data-theme="light"] input[type="checkbox"].switch { background-color: #c3cddb; }
+html[data-theme="light"] input[type="checkbox"].switch:hover:not(:disabled) { background-color: #8fa0b5; }
+html[data-theme="light"] input[type="checkbox"].switch:checked { background-color: var(--brand-600); }
+html[data-theme="light"] input[type="checkbox"].switch:checked:hover:not(:disabled) { background-color: var(--brand-500); }
+@media (prefers-reduced-motion: reduce) {
+  input[type="checkbox"], input[type="checkbox"].switch, .chip span { transition: none; }
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--slate-100);
+  cursor: pointer;
+  width: fit-content;
+}
+
+/* A setting that turns something on: its words, then the switch. */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--slate-800);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.switch-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.switch-label { font-size: 13.5px; font-weight: 600; color: var(--slate-100); }
+.switch-desc { font-size: 12px; line-height: 1.4; color: var(--slate-500); }
+html[data-theme="light"] .switch-row { background: #f8fafc; border-color: #dfe5ee; }
+
+/* Live readout of the window reader, so "is it seeing MAX?" is answerable
+   without opening a console. */
+.cw-status {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--slate-400);
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: rgba(148, 163, 184, 0.10);
+  overflow-wrap: anywhere;
+}
+.cw-status[data-state="running"] { color: var(--slate-300); }
+.cw-status[data-state="error"] { color: var(--red-400); }
+.cw-diag { white-space: pre-wrap; }
+.cw-diag[hidden] { display: none; }
+.incoming-call .rc-meta { opacity: 0.85; }
+.field-help code {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+/* ---- Photos (under the note preview) ------------------------------------ */
+.photos {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--slate-800);
+}
+.photos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.photos-title { font-size: 13px; font-weight: 600; color: var(--slate-300); }
+.photos-count { color: var(--slate-500); font-weight: 500; }
+.photos-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.photo-drop {
+  border: 1px dashed var(--slate-700);
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 64px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.photo-drop.dragging {
+  border-color: var(--brand-400);
+  background: rgba(var(--brand-rgb), 0.12);
+}
+.photo-empty {
+  font-size: 12px;
+  color: var(--slate-500);
+  text-align: center;
+  padding: 12px 6px;
+}
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.photo-grid:empty { display: none; }
+.photo-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.photo-tile img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--slate-800);
+  background: var(--slate-950);
+  cursor: zoom-in;
+}
+.photo-actions { display: flex; gap: 6px; align-items: center; }
+.photo-actions .btn.small { padding: 4px 9px; font-size: 11.5px; }
+.photo-actions .icon-btn { margin-left: auto; }
+@media print { .photos { display: none; } }
+
+/* ---- Dynamics 365 -------------------------------------------------------- */
+.d365-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.d365-steps { margin: 8px 0 8px 18px; display: flex; flex-direction: column; gap: 6px; }
+.d365-modal { max-width: 620px; }
+.d365-modal .stack { gap: 14px; }
+.d365-sends { margin-top: 16px; gap: 10px !important; }
+.d365-search-row { display: flex; gap: 8px; }
+.d365-search-row .input { flex: 1; min-width: 0; }
+.d365-results {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+.d365-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--slate-800);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--slate-100);
+}
+.d365-result:has(input:checked) {
+  border-color: var(--brand-400);
+  background: rgba(var(--brand-rgb), 0.12);
+}
+.d365-result input { margin-top: 3px; accent-color: var(--brand-500); }
+.d365-meta { display: block; font-size: 11.5px; color: var(--slate-500); margin-top: 2px; }
+.d365-kind {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slate-500);
+  border: 1px solid var(--slate-700);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-left: 4px;
+}
+.d365-empty { font-size: 12px; color: var(--slate-500); padding: 8px 2px; }
+.d365-case-card {
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.10);
+  color: var(--slate-100);
+}
+.d365-warn { display: block; margin-top: 6px; font-size: 12px; color: var(--amber-400); }
+.d365-error {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--red-400);
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: rgba(220, 38, 38, 0.10);
+}
+.d365-modal .btn-row { margin-top: 18px; }
+
+/* ---- feature switches (Settings > Features) ---- */
+body.feat-off-calls [data-feature~="calls"],
+body.feat-off-caller_type [data-feature~="caller_type"],
+body.feat-off-known_caller [data-feature~="known_caller"],
+body.feat-off-case_from_max [data-feature~="case_from_max"],
+body.feat-off-photos [data-feature~="photos"],
+body.feat-off-d365 [data-feature~="d365"],
+body.feat-off-sheet [data-feature~="sheet"],
+body.feat-off-polish [data-feature~="polish"] {
+  display: none !important;
+}
+
+/* One grouped list, a switch at the end of each row - the shape of an OS
+   settings page, so the switches read as one block. */
+.feat-list {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 18px;
+  border: 1px solid var(--slate-800);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.feat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--slate-100);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.feat-item + .feat-item { border-top: 1px solid var(--slate-800); }
+.feat-item:hover { background: rgba(var(--brand-rgb), 0.08); }
+.feat-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.feat-item .feat-label { font-weight: 600; }
+.feat-item .feat-desc { font-size: 12px; color: var(--slate-500); line-height: 1.4; }
+html[data-theme="light"] .feat-list { background: #f8fafc; border-color: #dfe5ee; }
+html[data-theme="light"] .feat-item + .feat-item { border-top-color: #dfe5ee; }
+.feat-lock {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+
+/* Secret fields are plain text inputs drawn as dots. A real type="password"
+   makes the browser's password manager treat the page as a login form - it
+   saved the AI model name as a "username" and then autofilled it into a
+   ticket field. */
+.input.masked { -webkit-text-security: disc; text-security: disc; }
+
+.feat-msg {
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: rgba(148, 163, 184, 0.10);
+  color: var(--slate-300);
+}
+.feat-msg.error { background: rgba(239, 68, 68, 0.10); color: var(--red-400); }
+.feat-msg.done { background: rgba(16, 185, 129, 0.10); color: var(--emerald-400); }
+#feat-restart { margin-bottom: 14px; }
+#btn-feat-reset { align-self: flex-start; }
+html[data-theme="light"] .feat-msg.error { color: #991b1b; }
+html[data-theme="light"] .feat-msg.done { color: #065f46; }
+
+/* ---- Integration status ---------------------------------------------------
+   One vocabulary everywhere an integration's health shows (Settings tiles,
+   drawer headers, the sidebar's Connections list): a dot and a few words.
+   ok = live, warn = needs a look, busy = on its way, off = not in use. Health,
+   not ticket outcome - so green/amber here say nothing about any ticket. */
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--slate-600);
+}
+[data-state="ok"] > .dot { background: var(--emerald-500); }
+[data-state="warn"] > .dot { background: var(--amber-500); }
+[data-state="busy"] > .dot { background: var(--brand-500); }
+.integ-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--slate-400);
+}
+.integ-state { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* ---- Settings: Integrations panel ---------------------------------------- */
+/* Full width, first row: status first, setup one click away in a drawer. */
+.integrations-panel { grid-column: 1 / -1; }
+/* Fixed-width tracks rather than stretch-to-fit: three tiles fill a wide row,
+   and a PC with only one integration switched on gets a tile, not a banner. */
+.integ-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+}
+/* A whole tile is the button - there is only one thing to do with it. */
+.integ-tile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 14px 14px 16px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--slate-800);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.integ-tile:hover { border-color: rgba(var(--brand-rgb), 0.55); background: rgba(var(--brand-rgb), 0.08); }
+.integ-tile:focus-visible { outline: none; box-shadow: var(--ring); border-color: var(--brand-500); }
+html[data-theme="light"] .integ-tile { background: #f8fafc; border-color: #dfe5ee; }
+html[data-theme="light"] .integ-tile:hover { background: rgba(36, 65, 144, 0.05); border-color: rgba(36, 65, 144, 0.35); }
+.integ-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: rgba(var(--brand-rgb), 0.14);
+  color: var(--brand-400);
+}
+.integ-icon svg { width: 18px; height: 18px; }
+.integ-text { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.integ-name { font-size: 13.5px; font-weight: 600; color: var(--slate-100); }
+.integ-vendor { font-weight: 500; color: var(--slate-500); margin-left: 4px; }
+.integ-desc { font-size: 12px; line-height: 1.4; color: var(--slate-500); }
+.integ-text .integ-status { margin-top: 3px; }
+.integ-chevron { width: 16px; height: 16px; flex-shrink: 0; color: var(--slate-600); transition: color 0.15s, transform 0.15s; }
+.integ-tile:hover .integ-chevron { color: var(--brand-400); transform: translateX(2px); }
+
+/* ---- Integration drawers --------------------------------------------------
+   Setup slides in over the page from the right. Nothing underneath reflows,
+   so the layout the user was reading is exactly where they left it. */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(2, 6, 23, 0.55);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.drawer-backdrop.open { opacity: 1; }
+.drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  z-index: 66;
+  width: min(540px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--slate-900);
+  border-left: 1px solid var(--slate-800);
+  box-shadow: -24px 0 60px -24px rgba(0, 0, 0, 0.7);
+  transform: translateX(100%);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drawer.open { transform: none; }
+/* Same Planmeca-blue edge the topbar wears, so the drawer reads as the app's. */
+.drawer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-600), var(--brand-500));
+}
+@media (prefers-reduced-motion: reduce) {
+  .drawer, .drawer-backdrop { transition: none; }
+}
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--slate-800);
+  flex-shrink: 0;
+}
+.drawer-titles { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.drawer-titles h3 { font-size: 17px; font-weight: 600; line-height: 1.2; }
+.drawer-titles h3 .integ-vendor { font-size: 13px; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 18px 22px 22px; }
+.drawer-foot {
+  display: flex;
+  gap: 8px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--slate-800);
+  flex-shrink: 0;
+}
+.drawer-foot .btn.indigo { min-width: 110px; }
+/* Space between a fold's summary and what it opens onto. */
+.drawer-fold { margin-top: 12px; }
+.drawer .fold { margin-top: 2px; }
+
+/* ---- Sidebar: Connections ------------------------------------------------- */
+/* Only integrations that are set up appear here, so a PC that uses none
+   shows nothing at all. Quiet by design: no motion, no counts. */
+.conn { padding-top: 14px; border-top: 1px solid var(--slate-800); }
+.conn .nav-label { padding-bottom: 6px; }
+.conn-list { display: flex; flex-direction: column; gap: 1px; }
+.conn-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--slate-400);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.conn-item:hover { background: var(--slate-800); color: var(--slate-100); }
+.conn-item:focus-visible { outline: none; box-shadow: var(--ring); }
+.conn-name { font-weight: 600; white-space: nowrap; }
+.conn-state {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--slate-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  .conn { padding-top: 10px; }
+  .conn-item { justify-content: center; padding: 8px 0; }
+  .conn-name, .conn-state { display: none; }
+}
+
+/* ======================================================================== */
+/*  LCARS - Library Computer Access and Retrieval System (Star Trek).       */
+/*  Black field, solid colour blocks with one rounded end, condensed        */
+/*  capitals. The top bar and the left rail meet in a single elbow, and     */
+/*  every panel carries a small elbow of its own. The elbow colour follows  */
+/*  the standing rotation: orange on Troubleshooting, lavender on First     */
+/*  Impressions. Appended last so it overrides the base rules by order.     */
+/*  Display type is Bahnschrift Condensed (ships with Windows 10+); it      */
+/*  falls back to Arial Narrow, then the system sans.                       */
+/* ======================================================================== */
+html[data-theme="lcars"] {
+  --lc-orange: #FF9900;
+  --lc-peach: #FFCC99;
+  --lc-lavender: #CC99CC;
+  --lc-violet: #9999CC;
+  --lc-ice: #99CCFF;
+  --lc-alert: #FF6655;
+  --lc-primary: var(--lc-orange);
+
+  --slate-950: #000000;  /* the field */
+  --slate-900: #08070d;  /* panels */
+  --slate-850: #100d19;
+  --slate-800: #2a2340;  /* hairlines, resting pills */
+  --slate-700: #4a3f78;  /* control outlines */
+  --slate-600: #7a6ca8;
+  --slate-500: #a99dd0;  /* faint text (8.0:1 on the panel) */
+  --slate-400: #cc99cc;  /* labels = LCARS lavender (8.6:1) */
+  --slate-300: #ffcc99;  /* strong secondary = peach */
+  --slate-100: #ffebd6;  /* primary text (17.3:1) */
+  --brand-700: #cc7a00;
+  --brand-600: #ff9900;
+  --brand-500: #ffad33;
+  --brand-400: #ffcc66;  /* links and accents on black */
+  --brand-rgb: 255, 153, 0;
+  --ring: 0 0 0 2px rgba(153, 204, 255, 0.6);
+  /* Rotation series: orange vs lavender differ along the blue-yellow axis,
+     which both normal and red-green-deficient vision keep. */
+  --call-first: #cc99ff;
+
+  --font-sans: "Bahnschrift SemiCondensed", "Bahnschrift", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Bahnschrift Condensed", "Bahnschrift", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+}
+html[data-theme="lcars"] body[data-rotation="first-impression"] { --lc-primary: #cc99ff; }
+
+/* ---- Elbow: brand block + top strip + rail ------------------------------ */
+html[data-theme="lcars"] .topbar,
+html[data-theme="lcars"] body[data-rotation="first-impression"] .topbar {
+  background: #000;
+  border-bottom: 0;
+}
+html[data-theme="lcars"] .topbar::before {
+  inset: auto;
+  top: 0;
+  left: var(--sidebar-w);
+  right: 0;
+  height: 14px;
+  border-radius: 0 14px 14px 0;
+  background: linear-gradient(90deg,
+    var(--lc-primary) 0 58%,
+    #000 58% calc(58% + 6px),
+    var(--lc-lavender) calc(58% + 6px) 80%,
+    #000 80% calc(80% + 6px),
+    var(--lc-peach) calc(80% + 6px) 100%);
+}
+html[data-theme="lcars"] .topbar-brand {
+  position: relative;
+  background: var(--lc-primary);
+  border-radius: 44px 0 0 0;
+  padding: 0 16px 0 28px;
+}
+/* The inside curve of the elbow: a quarter-disc of the block colour, hollowed
+   out by a circle centred on its far corner, so the black field has a round
+   corner where the strip meets the rail. */
+html[data-theme="lcars"] .topbar-brand::after {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 14px;
+  width: 26px;
+  height: 26px;
+  background: radial-gradient(circle at 100% 100%, transparent 25px, var(--lc-primary) 26px);
+  pointer-events: none;
+}
+html[data-theme="lcars"] .brand-logo { filter: brightness(0); }
+
+html[data-theme="lcars"] .topbar-lockup { margin-top: 14px; padding-left: 22px; }
+html[data-theme="lcars"] .topbar-right { margin-top: 14px; }
+html[data-theme="lcars"] .topbar-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lc-orange);
+}
+html[data-theme="lcars"] .topbar-sub {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lc-lavender);
+  border-left: 3px solid var(--lc-lavender);
+}
+html[data-theme="lcars"] .topbar-meta {
+  font-family: var(--font-display);
+  color: var(--lc-violet);
+}
+
+/* Rotation switch: two pills, the standing one filled. */
+html[data-theme="lcars"] .mode-toggle { background: transparent; border: 0; gap: 6px; padding: 0; }
+html[data-theme="lcars"] .mode-opt {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  background: var(--slate-800);
+  color: var(--lc-lavender);
+}
+html[data-theme="lcars"] .mode-opt:hover { color: var(--lc-peach); }
+html[data-theme="lcars"] .mode-opt[aria-checked="true"] { background: var(--brand-600); color: #000; }
+/* The operating-system chips are the same pills. */
+html[data-theme="lcars"] .chip span {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-color: transparent;
+  background: var(--slate-800);
+  color: var(--lc-lavender);
+}
+html[data-theme="lcars"] .chip:hover span { border-color: transparent; color: var(--lc-peach); }
+html[data-theme="lcars"] .chip input:checked + span { background: var(--brand-600); border-color: transparent; color: #000; }
+html[data-theme="lcars"] .case-rotation-label { font-family: var(--font-display); color: var(--lc-lavender); }
+
+/* ---- Rail ---------------------------------------------------------------- */
+html[data-theme="lcars"] .sidebar {
+  background: #000;
+  border-right: 0;
+  padding: 6px 0 0;
+}
+html[data-theme="lcars"] .nav-label {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--lc-lavender);
+  text-align: right;
+  padding: 8px 16px 8px 0;
+}
+html[data-theme="lcars"] .nav { gap: 6px; }
+html[data-theme="lcars"] .nav-item {
+  --c: var(--lc-orange);
+  height: 46px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 20px 6px 12px;
+  border-radius: 0 23px 23px 0;
+  background: var(--c);
+  color: #000;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: right;
+}
+html[data-theme="lcars"] .nav-item:nth-child(2) { --c: var(--lc-lavender); }
+html[data-theme="lcars"] .nav-item:nth-child(3) { --c: var(--lc-ice); }
+html[data-theme="lcars"] .nav-item:nth-child(4) { --c: var(--lc-peach); }
+html[data-theme="lcars"] .nav-item:hover { background: var(--c); color: #000; filter: brightness(1.15); }
+/* Current page: the block goes warm white and keeps its own colour as a tab. */
+html[data-theme="lcars"] .nav-item.active { background: var(--slate-100); color: #000; }
+html[data-theme="lcars"] .nav-item.active::before {
+  top: 0; bottom: 0; left: 0; width: 12px;
+  border-radius: 0;
+  background: var(--c);
+}
+html[data-theme="lcars"] .nav-item svg { display: none; }
+/* Rail end cap. */
+html[data-theme="lcars"] .sidebar::after {
+  content: "";
+  flex: 0 0 28px;
+  margin-top: 12px;
+  background: var(--lc-primary);
+  border-radius: 0 0 0 28px;
+}
+
+/* ---- Panels: each one a small elbow -------------------------------------- */
+html[data-theme="lcars"] .panel {
+  --pc: var(--lc-orange);
+  background: var(--slate-900);
+  border: 0;
+  border-top: 8px solid var(--pc);
+  border-left: 14px solid var(--pc);
+  border-radius: 28px 0 0 0;
+}
+html[data-theme="lcars"] .panel:nth-child(4n+2) { --pc: var(--lc-lavender); }
+html[data-theme="lcars"] .panel:nth-child(4n+3) { --pc: var(--lc-ice); }
+html[data-theme="lcars"] .panel:nth-child(4n+4) { --pc: var(--lc-peach); }
+html[data-theme="lcars"] .panel.form-panel { background: var(--slate-900); }
+html[data-theme="lcars"] .panel-head { border-bottom: 2px solid var(--slate-800); }
+html[data-theme="lcars"] .panel-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  letter-spacing: 0.14em;
+  color: var(--pc);
+}
+html[data-theme="lcars"] .form-divider { font-family: var(--font-display); color: var(--lc-violet); letter-spacing: 0.14em; }
+html[data-theme="lcars"] .form-divider::after { height: 3px; border-radius: 2px; background: var(--slate-800); }
+html[data-theme="lcars"] .page-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lc-peach);
+}
+html[data-theme="lcars"] .page-desc { color: var(--lc-violet); }
+
+/* ---- Controls ------------------------------------------------------------- */
+html[data-theme="lcars"] .label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+html[data-theme="lcars"] .label .hint { text-transform: none; letter-spacing: 0; font-family: var(--font-sans); }
+html[data-theme="lcars"] .input,
+html[data-theme="lcars"] .select,
+html[data-theme="lcars"] .textarea {
+  background: #000;
+  border: 2px solid var(--slate-600);  /* >= 3:1 against the field */
+  border-radius: 14px;
+}
+html[data-theme="lcars"] .input:focus,
+html[data-theme="lcars"] .select:focus,
+html[data-theme="lcars"] .textarea:focus { border-color: var(--lc-ice); }
+
+html[data-theme="lcars"] .btn {
+  border: 2px solid var(--lc-lavender);
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lc-lavender);
+}
+html[data-theme="lcars"] .btn:hover { background: var(--lc-lavender); border-color: var(--lc-lavender); color: #000; }
+html[data-theme="lcars"] .btn.small { padding: 4px 13px; font-size: 13px; letter-spacing: 0.08em; }
+html[data-theme="lcars"] .btn.indigo,
+html[data-theme="lcars"] .btn.green,
+html[data-theme="lcars"] .btn.red { color: #000; border-color: transparent; }
+html[data-theme="lcars"] .btn.indigo { background: var(--lc-orange); }
+html[data-theme="lcars"] .btn.indigo:hover { background: var(--lc-peach); }
+html[data-theme="lcars"] .btn.green { background: var(--emerald-500); }
+html[data-theme="lcars"] .btn.green:hover { background: var(--emerald-300); }
+html[data-theme="lcars"] .btn.red { background: var(--lc-alert); }
+html[data-theme="lcars"] .btn.red:hover { background: #ff8c80; }
+html[data-theme="lcars"] .icon-btn { border: 2px solid var(--slate-600); border-radius: 999px; background: #000; }
+html[data-theme="lcars"] .btn-link:hover { color: var(--lc-peach); }
+
+html[data-theme="lcars"] ::-webkit-scrollbar-thumb { background: var(--lc-violet); }
+html[data-theme="lcars"] ::-webkit-scrollbar-thumb:hover { background: var(--lc-lavender); }
+
+/* Theme picker swatch. */
+.swatch-lcars {
+  background: linear-gradient(90deg, #FF9900 0 38%, #000 38% 44%, #CC99CC 44% 68%, #000 68% 74%, #99CCFF 74%);
+}
+
+/* ---- Scanner -------------------------------------------------------------- */
+/* One moving thing: a soft highlight that sweeps the top strip end to end and
+   back. It is masked with the strip's own segment pattern, so it lights the
+   coloured blocks and skips the black gaps between them. Off for anyone whose
+   system asks for reduced motion. */
+html[data-theme="lcars"] .topbar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--sidebar-w);
+  right: 0;
+  height: 14px;
+  border-radius: 0 14px 14px 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.75) 50%, rgba(255, 255, 255, 0)) no-repeat;
+  background-size: 180px 100%;
+  background-position: 0 0;
+  -webkit-mask-image: linear-gradient(90deg, #000 0 58%, transparent 58% calc(58% + 6px), #000 calc(58% + 6px) 80%, transparent 80% calc(80% + 6px), #000 calc(80% + 6px) 100%);
+  mask-image: linear-gradient(90deg, #000 0 58%, transparent 58% calc(58% + 6px), #000 calc(58% + 6px) 80%, transparent 80% calc(80% + 6px), #000 calc(80% + 6px) 100%);
+  animation: lc-scan 4.2s ease-in-out infinite alternate;
+}
+@keyframes lc-scan {
+  from { background-position: 0 0; }
+  to { background-position: 100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="lcars"] .topbar::after { animation: none; opacity: 0; }
+}
+
+/* ---- AI Polish: thinking --------------------------------------------------- */
+/* app.js puts .ai-busy on <body> while a polish request is out, and .ai-done
+   for a second after it lands. It also drops a .ai-scan overlay over the
+   visible part of the note preview (LCARS only). While busy everything the
+   request touches comes alive:
+     - a bright scan line sweeps the preview, over faint scan lines
+     - the preview frame, the fields being rewritten, and the button pulse
+     - the elbow and rail cap throb, and the top-strip scanner runs fast
+   When the result lands, one fast pass and a frame flash close it out. */
+
+/* Overlay: pinned to the part of the preview you can actually see, so it
+   works on a long note and wherever the panel is scrolled. */
+html[data-theme="lcars"] .ai-scan {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  overflow: hidden;
+  background: repeating-linear-gradient(180deg, rgba(153, 204, 255, 0.06) 0 1px, transparent 1px 4px);
+  animation: lc-scan-in 0.2s ease-out both;
+}
+html[data-theme="lcars"] .ai-scan-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 180px;
+  mix-blend-mode: screen;
+  background: linear-gradient(180deg,
+    rgba(153, 204, 255, 0) 0%,
+    rgba(153, 204, 255, 0.14) 28%,
+    rgba(153, 204, 255, 0.55) 45%,
+    #ffffff 50%,
+    rgba(153, 204, 255, 0.55) 55%,
+    rgba(153, 204, 255, 0.14) 72%,
+    rgba(153, 204, 255, 0) 100%);
+  transform: translateY(-90px);
+  animation: lc-band 1.15s ease-in-out infinite alternate;
+}
+html[data-theme="lcars"] .ai-scan.done { animation: lc-scan-out 0.25s 0.6s ease-in forwards; }
+html[data-theme="lcars"] .ai-scan.done .ai-scan-band {
+  animation: lc-band-done 0.7s cubic-bezier(0.35, 0.1, 0.25, 1) 1 forwards;
+}
+@keyframes lc-scan-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lc-scan-out { to { opacity: 0; } }
+@keyframes lc-band {
+  from { transform: translateY(-90px); }
+  to { transform: translateY(calc(var(--h) - 90px)); }
+}
+@keyframes lc-band-done {
+  from { transform: translateY(-90px); }
+  to { transform: translateY(calc(var(--h) + 90px)); }
+}
+
+/* Preview frame: throbs ice-blue while working, flashes white when done. */
+html[data-theme="lcars"] body.ai-busy .panel:has(#btn-polish) {
+  animation: lc-frame-throb 0.8s ease-in-out infinite alternate;
+}
+html[data-theme="lcars"] body.ai-done .panel:has(#btn-polish) {
+  animation: lc-frame-flash 0.9s ease-out 1;
+}
+@keyframes lc-frame-throb {
+  from { border-color: var(--pc); box-shadow: 0 0 0 0 rgba(153, 204, 255, 0); }
+  to { border-color: var(--lc-ice); box-shadow: 0 0 28px 2px rgba(153, 204, 255, 0.55); }
+}
+@keyframes lc-frame-flash {
+  from { border-color: #fff; box-shadow: 0 0 44px 8px rgba(255, 255, 255, 0.75); }
+  to { border-color: var(--pc); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+/* Fields being rewritten: a glow that ripples down the form. */
+html[data-theme="lcars"] body.ai-busy #problem,
+html[data-theme="lcars"] body.ai-busy #workflow,
+html[data-theme="lcars"] body.ai-busy #nextSteps,
+html[data-theme="lcars"] body.ai-busy #outcome {
+  animation: lc-think-field 0.65s ease-in-out infinite alternate;
+}
+html[data-theme="lcars"] body.ai-busy #workflow { animation-delay: -0.16s; }
+html[data-theme="lcars"] body.ai-busy #nextSteps { animation-delay: -0.32s; }
+html[data-theme="lcars"] body.ai-busy #outcome { animation-delay: -0.48s; }
+@keyframes lc-think-field {
+  from { border-color: var(--slate-600); box-shadow: 0 0 0 0 rgba(153, 204, 255, 0), inset 0 0 0 0 rgba(153, 204, 255, 0); }
+  to { border-color: var(--lc-ice); box-shadow: 0 0 20px 3px rgba(153, 204, 255, 0.8), inset 0 0 16px 0 rgba(153, 204, 255, 0.25); }
+}
+
+/* Top strip scanner: fast, long and full white. Elbow and rail cap throb. */
+html[data-theme="lcars"] body.ai-busy .topbar::after {
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0), #fff 50%, rgba(255, 255, 255, 0));
+  background-size: 380px 100%;
+  animation-duration: 0.85s;
+}
+html[data-theme="lcars"] body.ai-busy .topbar-brand,
+html[data-theme="lcars"] body.ai-busy .sidebar::after {
+  animation: lc-throb 0.6s ease-in-out infinite alternate;
+}
+@keyframes lc-throb { from { filter: brightness(1); } to { filter: brightness(1.45); } }
+
+/* The button: a ring that radiates out, and a bigger scanner bar. */
+html[data-theme="lcars"] #btn-polish[aria-busy="true"] {
+  opacity: 1;
+  cursor: progress;
+  animation: lc-ring 0.9s ease-out infinite;
+}
+@keyframes lc-ring {
+  from { box-shadow: 0 0 0 0 rgba(255, 153, 0, 0.9); }
+  to { box-shadow: 0 0 0 16px rgba(255, 153, 0, 0); }
+}
+html[data-theme="lcars"] .spinner {
+  position: relative;
+  width: 52px;
+  height: 10px;
+  border: 0;
+  border-radius: 5px;
+  animation: none;
+  vertical-align: middle;
+}
+html[data-theme="lcars"] .spinner::before,
+html[data-theme="lcars"] .spinner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+  background: currentColor;
+}
+html[data-theme="lcars"] .spinner::before { left: 0; right: 0; opacity: 0.28; }
+html[data-theme="lcars"] .spinner::after {
+  left: 0;
+  width: 16px;
+  animation: lc-cylon 0.5s ease-in-out infinite alternate;
+}
+@keyframes lc-cylon {
+  from { transform: translateX(0); }
+  to { transform: translateX(36px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Same information, no motion: steady ice-blue outlines and the button's
+     "Working..." label. */
+  html[data-theme="lcars"] .ai-scan { display: none; }
+  html[data-theme="lcars"] body.ai-busy .panel:has(#btn-polish) { animation: none; border-color: var(--lc-ice); }
+  html[data-theme="lcars"] body.ai-done .panel:has(#btn-polish) { animation: none; }
+  html[data-theme="lcars"] body.ai-busy #problem,
+  html[data-theme="lcars"] body.ai-busy #workflow,
+  html[data-theme="lcars"] body.ai-busy #nextSteps,
+  html[data-theme="lcars"] body.ai-busy #outcome { animation: none; border-color: var(--lc-ice); }
+  html[data-theme="lcars"] body.ai-busy .topbar-brand,
+  html[data-theme="lcars"] body.ai-busy .sidebar::after,
+  html[data-theme="lcars"] #btn-polish[aria-busy="true"],
+  html[data-theme="lcars"] .spinner::after { animation: none; }
+}
+
+/* ---- Tabs: lettering centred -------------------------------------------- */
+html[data-theme="lcars"] .nav-item {
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  text-align: center;
+}
+html[data-theme="lcars"] .nav-item.active { padding-left: 24px; } /* clear of the colour tab */
+
+/* Settings panels that only make sense on LCARS. */
+html:not([data-theme="lcars"]) .lcars-only { display: none !important; }
+
+/* ---- Incoming-call card ---------------------------------------------------- */
+html[data-theme="lcars"] .call-card {
+  position: fixed;
+  top: 66px;
+  right: 24px;
+  z-index: 45;
+  width: 400px;
+  max-width: calc(100vw - 48px);
+  background: var(--slate-900);
+  border-top: 8px solid var(--lc-ice);
+  border-left: 14px solid var(--lc-ice);
+  border-radius: 28px 0 0 0;
+  box-shadow: 0 0 0 1px #000, 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 28px rgba(153, 204, 255, 0.28);
+  overflow: hidden;
+  animation: cc-in 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+html[data-theme="lcars"] .call-card.leaving { animation: cc-out 0.25s ease-in forwards; }
+@keyframes cc-in {
+  0% { opacity: 0; transform: translateX(46px); clip-path: inset(0 0 100% 0); }
+  35% { opacity: 1; }
+  100% { opacity: 1; transform: none; clip-path: inset(0 0 0 0); }
+}
+@keyframes cc-out { to { opacity: 0; transform: translateX(30px); } }
+
+html[data-theme="lcars"] .cc-bar { display: flex; align-items: center; gap: 10px; padding: 10px 12px 6px 14px; }
+html[data-theme="lcars"] .cc-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: var(--lc-ice);
+  animation: cc-title-flick 0.6s steps(1) 1 both;
+}
+@keyframes cc-title-flick { 0%, 40% { opacity: 0.2; } 20%, 60%, 100% { opacity: 1; } }
+html[data-theme="lcars"] .cc-sd { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; white-space: nowrap; flex: none; color: var(--lc-lavender); }
+html[data-theme="lcars"] .cc-x {
+  border: 2px solid var(--slate-600);
+  background: #000;
+  color: var(--lc-lavender);
+  width: 26px; height: 26px;
+  flex: none;
+  border-radius: 50%;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+html[data-theme="lcars"] .cc-x:hover { background: var(--lc-lavender); color: #000; }
+
+html[data-theme="lcars"] .cc-body { padding: 4px 16px 12px 14px; }
+html[data-theme="lcars"] .cc-number {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--lc-peach);
+  line-height: 1.15;
+}
+html[data-theme="lcars"] .cc-badge {
+  display: inline-block;
+  margin: 4px 0 8px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: #000;
+}
+html[data-theme="lcars"] .cc-badge.known { background: var(--lc-lavender); }
+html[data-theme="lcars"] .cc-badge.test { background: var(--lc-orange); }
+html[data-theme="lcars"] .cc-badge.none { background: transparent; color: var(--lc-violet); border: 2px solid var(--lc-violet); padding: 0 10px; }
+html[data-theme="lcars"] .cc-badge.scan { background: var(--lc-ice); animation: cc-blink 0.8s ease-in-out infinite alternate; }
+@keyframes cc-blink { from { opacity: 0.45; } to { opacity: 1; } }
+
+html[data-theme="lcars"] .cc-grid {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: 3px 10px;
+  margin: 0 0 8px;
+  font-size: 13.5px;
+}
+html[data-theme="lcars"] .cc-grid dt {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--lc-lavender);
+  padding-top: 1px;
+}
+html[data-theme="lcars"] .cc-grid dd { margin: 0; color: var(--slate-100); overflow-wrap: anywhere; }
+
+html[data-theme="lcars"] .cc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+html[data-theme="lcars"] .cc-chip {
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: #000;
+}
+html[data-theme="lcars"] .cc-chip.ice { background: var(--lc-ice); }
+html[data-theme="lcars"] .cc-chip.tan { background: var(--brand-400); }
+html[data-theme="lcars"] .cc-chip.alert { background: var(--lc-alert); }
+
+html[data-theme="lcars"] .cc-sig {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 2px solid var(--slate-800);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--lc-violet);
+}
+html[data-theme="lcars"] .cc-eq { display: inline-flex; align-items: flex-end; gap: 3px; height: 16px; margin-left: auto; }
+html[data-theme="lcars"] .cc-eq i {
+  width: 5px; height: 100%;
+  background: var(--lc-ice);
+  transform-origin: bottom;
+  animation: cc-eq 0.9s ease-in-out infinite alternate;
+}
+html[data-theme="lcars"] .cc-eq i:nth-child(2) { animation-delay: -0.2s; background: var(--lc-lavender); }
+html[data-theme="lcars"] .cc-eq i:nth-child(3) { animation-delay: -0.45s; background: var(--lc-orange); }
+html[data-theme="lcars"] .cc-eq i:nth-child(4) { animation-delay: -0.1s; background: var(--lc-lavender); }
+html[data-theme="lcars"] .cc-eq i:nth-child(5) { animation-delay: -0.6s; }
+@keyframes cc-eq { from { transform: scaleY(0.2); } to { transform: scaleY(1); } }
+
+html[data-theme="lcars"] .cc-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 0 16px 12px 14px; }
+html[data-theme="lcars"] .cc-note { margin-left: auto; font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.12em; color: var(--slate-500); }
+
+/* The card clears itself after 30 s; the bar drains, and stops while you hover. */
+html[data-theme="lcars"] .cc-drain { height: 5px; background: var(--slate-800); }
+html[data-theme="lcars"] .cc-drain i {
+  display: block;
+  height: 100%;
+  background: var(--lc-ice);
+  transform-origin: left;
+  animation: cc-drain 30s linear forwards;
+}
+html[data-theme="lcars"] .call-card:hover .cc-drain i { animation-play-state: paused; }
+@keyframes cc-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ---- Yellow / red alert ---------------------------------------------------- */
+/* app.js sets data-alert="yellow|red" on <html> while a condition holds. The
+   elbow, rail cap and strip all read --lc-primary, so they change colour with
+   no other rule. Red pulses at 1 Hz, yellow at 0.5 Hz: well under the 3 flashes
+   per second that photosensitivity guidance allows. */
+html[data-theme="lcars"][data-alert="yellow"] { --lc-primary: #ffcc00; }
+html[data-theme="lcars"][data-alert="red"] { --lc-primary: #ff2a2a; }
+html[data-theme="lcars"][data-alert] .topbar::before {
+  background: linear-gradient(90deg,
+    var(--lc-primary) 0 58%, #000 58% calc(58% + 6px),
+    var(--lc-primary) calc(58% + 6px) 80%, #000 80% calc(80% + 6px),
+    var(--lc-primary) calc(80% + 6px) 100%);
+}
+html[data-theme="lcars"][data-alert="yellow"] .topbar::before,
+html[data-theme="lcars"][data-alert="yellow"] .topbar-brand,
+html[data-theme="lcars"][data-alert="yellow"] .sidebar::after { animation: al-pulse 2s ease-in-out infinite alternate; }
+html[data-theme="lcars"][data-alert="red"] .topbar::before,
+html[data-theme="lcars"][data-alert="red"] .topbar-brand,
+html[data-theme="lcars"][data-alert="red"] .sidebar::after { animation: al-pulse 0.5s ease-in-out infinite alternate; }
+@keyframes al-pulse { from { filter: brightness(0.55); } to { filter: brightness(1.35); } }
+html[data-theme="lcars"][data-alert] .topbar-title { color: var(--lc-primary); }
+
+html[data-theme="lcars"] .alert-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+html[data-theme="lcars"][data-alert] .alert-vignette { opacity: 1; }
+html[data-theme="lcars"][data-alert="yellow"] .alert-vignette {
+  box-shadow: inset 0 0 110px 8px rgba(255, 204, 0, 0.45);
+  animation: al-vig 2s ease-in-out infinite alternate;
+}
+html[data-theme="lcars"][data-alert="red"] .alert-vignette {
+  box-shadow: inset 0 0 140px 18px rgba(255, 30, 30, 0.7);
+  animation: al-vig 0.5s ease-in-out infinite alternate;
+}
+@keyframes al-vig { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* The banner sits in the page's top padding, just under the top bar. */
+html[data-theme="lcars"] .alert-banner {
+  display: none;
+  position: fixed;
+  top: var(--topbar-h);
+  left: var(--sidebar-w);
+  right: 0;
+  height: 24px;
+  z-index: 46;
+  align-items: center;
+  gap: 14px;
+  padding: 0 8px 0 18px;
+  border-radius: 0 0 0 14px;
+  color: #000;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+html[data-theme="lcars"] .alert-banner.on { display: flex; }
+html[data-theme="lcars"] .alert-banner[data-level="yellow"] { background: #ffcc00; }
+html[data-theme="lcars"] .alert-banner[data-level="red"] { background: #ff2a2a; }
+html[data-theme="lcars"] .alert-banner.flash { animation: ab-in 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+@keyframes ab-in { from { transform: translateY(-100%); } to { transform: none; } }
+html[data-theme="lcars"] .ab-level { font-weight: 700; }
+html[data-theme="lcars"] .ab-why { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+html[data-theme="lcars"] .ab-ack {
+  flex: none;
+  height: 18px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+html[data-theme="lcars"] .ab-ack:hover { background: var(--slate-100); color: #000; }
+
+/* Settings: alert conditions. */
+html[data-theme="lcars"] .alert-rule {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-left: 8px solid var(--lc-alert);
+  border-radius: 14px 0 0 14px;
+  background: var(--slate-850);
+}
+html[data-theme="lcars"] .alert-rule.yellow { border-left-color: #ffcc00; }
+html[data-theme="lcars"] .alert-rule .select { width: auto; min-width: 96px; }
+html[data-theme="lcars"] .alert-rule .input { flex: 1 1 180px; min-width: 120px; }
+html[data-theme="lcars"] .ar-when, html[data-theme="lcars"] .ar-op, html[data-theme="lcars"] .ar-unit {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lc-lavender);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Same alert, no pulsing: steady colour, steady glow. */
+  html[data-theme="lcars"][data-alert] .topbar::before,
+  html[data-theme="lcars"][data-alert] .topbar-brand,
+  html[data-theme="lcars"][data-alert] .sidebar::after,
+  html[data-theme="lcars"][data-alert] .alert-vignette,
+  html[data-theme="lcars"] .alert-banner.flash,
+  html[data-theme="lcars"] .call-card,
+  html[data-theme="lcars"] .cc-title,
+  html[data-theme="lcars"] .cc-badge.scan,
+  html[data-theme="lcars"] .cc-eq i,
+  html[data-theme="lcars"] .cc-drain i { animation: none; }
+}
+
+/* ---- Settings sub-tabs ----------------------------------------------------- */
+.subtabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 20px;
+  border-bottom: 1px solid var(--slate-800);
+}
+.subtab {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate-400);
+  cursor: pointer;
+}
+.subtab:hover { color: var(--slate-100); }
+.subtab[aria-selected="true"] { color: var(--slate-100); border-bottom-color: var(--brand-500); }
+.subtab:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 6px; }
+
+/* The three lists sit side by side, the macro editor underneath. */
+.settings-grid.lists-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1100px) {
+  .settings-grid.lists-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* LCARS: the tabs become rail pills - the open one filled orange. */
+html[data-theme="lcars"] .subtabs { gap: 6px; border-bottom: 0; margin-bottom: 18px; }
+html[data-theme="lcars"] .subtab {
+  height: 36px;
+  padding: 0 22px;
+  border: 0;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--slate-800);
+  color: var(--lc-lavender);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+html[data-theme="lcars"] .subtab:hover { color: var(--lc-peach); }
+html[data-theme="lcars"] .subtab[aria-selected="true"] { background: var(--lc-orange); color: #000; }
+html[data-theme="lcars"] .subtab:focus-visible { box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--lc-ice); border-radius: 999px; }
+
+/* ---- Call transfer drawer ---------------------------------------------------- */
+.tr-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--slate-800); border-radius: 8px; }
+.tr-k { display: block; font-size: 11px; font-weight: 600; color: var(--slate-400); }
+.tr-v { display: block; font-size: 14px; font-weight: 600; color: var(--slate-100); overflow-wrap: anywhere; }
+.tr-v.bad { color: var(--red-400); }
+#tr-warn { color: var(--amber-400); }
+.tr-queues { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.tr-q { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; width: 100%; }
+.tr-q .tr-badge { flex: none; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,0.22); }
+.tr-q:disabled { opacity: 0.5; cursor: not-allowed; }
+.tr-setup { margin-top: 18px; padding-top: 12px; border-top: 1px dashed var(--slate-800); }
+.tr-setup summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--slate-300); margin-bottom: 8px; }
+.tr-setup .btn { margin-top: 10px; }
+.tr-done { text-align: center; padding: 28px 8px; }
+.tr-done h4 { margin: 0 0 12px; font-size: 18px; color: var(--emerald-300); }
+html[data-theme="lcars"] .tr-meta { border: 0; border-left: 8px solid var(--lc-ice); border-radius: 14px 0 0 14px; background: var(--slate-850); }
+html[data-theme="lcars"] .tr-k { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lc-lavender); }
+html[data-theme="lcars"] .tr-q { height: 42px; border-radius: 0 999px 999px 0; }
+html[data-theme="lcars"] .tr-done h4 { font-family: var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--lc-ice); }
+
+/* Transfer failure: stays on screen until dismissed. */
+.tr-error { margin: 10px 0; padding: 10px 12px; border: 1px solid #e5484d;
+  border-left-width: 4px; border-radius: 8px; background: rgba(229, 72, 77, .12);
+  color: inherit; user-select: text; }
+.tr-error strong { color: #ff6b6f; }
+.tr-error p { margin: 6px 0 8px; font-size: 13px; line-height: 1.4;
+  overflow-wrap: anywhere; user-select: text; }
+
+/* ---- Required fields ---------------------------------------------------------- */
+/* A field a rule still needs: an amber edge and an asterisk at its end. The
+   asterisk is an image, which can't read a variable, so each theme has its own. */
+:root {
+  --req-edge: rgba(251, 191, 36, 0.5);
+  --req-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23fbbf24' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M6 1.6v8.8M2.2 3.8l7.6 4.4M9.8 3.8l-7.6 4.4'/%3E%3C/svg%3E");
+  --req-star-missing: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23f87171' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M6 1.6v8.8M2.2 3.8l7.6 4.4M9.8 3.8l-7.6 4.4'/%3E%3C/svg%3E");
+}
+html[data-theme="light"] {
+  --req-edge: rgba(180, 83, 9, 0.55);
+  --req-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23b45309' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M6 1.6v8.8M2.2 3.8l7.6 4.4M9.8 3.8l-7.6 4.4'/%3E%3C/svg%3E");
+  --req-star-missing: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23dc2626' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M6 1.6v8.8M2.2 3.8l7.6 4.4M9.8 3.8l-7.6 4.4'/%3E%3C/svg%3E");
+}
+html[data-theme="contrast"] { --req-edge: var(--amber-400); }
+html[data-theme="lcars"] {
+  --req-edge: #b38f00;
+  --req-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23ffcc00' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M6 1.6v8.8M2.2 3.8l7.6 4.4M9.8 3.8l-7.6 4.4'/%3E%3C/svg%3E");
+  --req-star-missing: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23ff6655' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M6 1.6v8.8M2.2 3.8l7.6 4.4M9.8 3.8l-7.6 4.4'/%3E%3C/svg%3E");
+}
+/* "html" so these outrank the themes' own field backgrounds. */
+html .input.req-needed, html .textarea.req-needed {
+  padding-right: 30px;
+  background-image: var(--req-star);
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 11px 11px;
+}
+html .textarea.req-needed { background-position: right 11px top 13px; }
+html .input.req-needed:not(:focus), html .textarea.req-needed:not(:focus) { border-color: var(--req-edge); }
+/* Save was refused for it: the same marks in red, and a heavier edge. */
+.req-missing {
+  --req-edge: var(--red-400);
+  --req-star: var(--req-star-missing);
+  outline: 2px solid var(--red-400);
+  outline-offset: -1px;
+}
+.req-rule { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--slate-800); border-radius: 8px; }
+.req-rule-when, .req-rule-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.req-rule-when .select, .req-rule-when .input { width: auto; flex: 1 1 200px; min-width: 140px; }
+.req-rule-when .btn { margin-left: auto; }
+.req-rule-fields { margin-top: 8px; font-size: 13px; }
+.req-check { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.req-rule-when > span, .req-rule-fields > span { font-size: 12px; font-weight: 600; color: var(--slate-400); }
+#req-panel .btn-row { margin-top: 10px; }
+
+/* ---- Sheet cross-check: a value that disagrees with the Imaging Package row ---- */
+.sheet-diff { outline: 2px solid var(--red-400); outline-offset: 1px; background-color: rgba(229, 72, 77, .10); }
+.sheet-check { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--red-400); }
+.sheet-check .btn { margin-left: 6px; }
+
+/* ---- First Impressions: step by step ------------------------------------------ */
+/* Off First Impressions the step wrappers vanish (display: contents), so the
+   form lays out exactly as before. */
+.fi-step, .fi-step-body { display: contents; }
+.fi-step-head, .fi-only { display: none; }
+body[data-rotation="first-impression"] .fi-only { display: inline-flex; }
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step {
+  display: block; border: 1px solid var(--slate-800); border-radius: 12px; padding: 0; overflow: visible;
+}
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step-body {
+  display: flex; flex-direction: column; gap: 16px; padding: 4px 14px 14px;
+}
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step-head {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px;
+  background: none; border: 0; cursor: pointer; text-align: left; color: inherit; font: inherit;
+}
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step .form-divider { display: none; }
+/* the step header replaces the environment block's own header */
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step .env-head { display: none; }
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step .env-block { padding: 0; border: 0; background: none; }
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step .env-block.collapsed .env-body { display: flex; }
+/* ...and the report import moves up beside it: the step becomes a two-column
+   grid, its wrappers step aside, and the fields span both columns below. */
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-step="env"] {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+}
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-step="env"] .fi-step-body,
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-step="env"] .env-block,
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-step="env"] .env-headrow { display: contents; }
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-step="env"] .env-import {
+  grid-column: 2; grid-row: 1; margin-right: 14px;
+}
+body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-step="env"] .env-body {
+  grid-column: 1 / -1; padding: 4px 14px 14px;
+}
+.fi-step-num { flex: none; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center;
+  justify-content: center; font-size: 12px; font-weight: 700; background: var(--slate-700); color: var(--slate-100); }
+.fi-step-title { flex: none; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.fi-step-status { margin-left: auto; font-size: 12px; color: var(--slate-400); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+.fi-step[data-state="open"] { border-color: var(--brand-500); }
+.fi-step[data-state="open"] .fi-step-num { background: var(--brand-500); color: #fff; }
+.fi-step[data-state="open"] .fi-step-status.need { color: var(--amber-400); }
+.fi-step[data-state="folded"] .fi-step-body, .fi-step[data-state="locked"] .fi-step-body { display: none !important; }
+.fi-step[data-state="folded"] .fi-step-num { background: var(--green-500, #16a34a); color: #fff; }
+.fi-step[data-state="folded"] .fi-step-status { color: var(--slate-200); }
+.fi-step[data-state="locked"] { opacity: 0.55; }
+.fi-step[data-state="locked"] .fi-step-head { cursor: not-allowed; }
+
+/* ---- System Environment lists (Settings) ---------------------------------------- */
+.env-lists-summary { cursor: pointer; margin-bottom: 8px; }
+.env-lists-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 10px; }
+.env-list-title { font-size: 12px; font-weight: 700; margin: 0 0 6px; color: var(--slate-300); }
+.env-list-panel .managed-list { max-height: 220px; overflow-y: auto; }
+
+/* ---- several Google Sheets in Settings ---- */
+.sheet-sources { display: flex; flex-direction: column; gap: 12px; }
+.sheet-src { border: 1px solid var(--slate-700, #334155); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.sheet-src-head { display: flex; gap: 8px; align-items: center; }
+.sheet-src-head .ss-name { flex: 1; font-weight: 600; }
+.sheet-src-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ---- value not on its list ---- */
+.input.list-invalid, .select.list-invalid { border-color: var(--red-500, #ef4444) !important; box-shadow: 0 0 0 2px rgba(239,68,68,.25); }
+.import-rows { display: grid; gap: 6px; margin: 8px 0 12px; }
+.import-row { align-items: flex-start; }
+.import-was { color: var(--slate-500, #64748b); font-size: 12px; }
+.import-from { color: var(--slate-500, #64748b); font-size: 11.5px; }
+.import-ignored { margin: 0 0 12px; font-size: 12px; }
+.import-extra { display: grid; gap: 6px; margin: 8px 0; }
+.import-extra-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.import-extra-text { font-size: 12.5px; overflow-wrap: anywhere; }
+.import-extra-row .select { max-width: 190px; flex: 0 0 190px; }
+
