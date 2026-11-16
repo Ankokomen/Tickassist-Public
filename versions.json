@@ -1,0 +1,10 @@
+{
+  "versions": [
+    {
+      "version": "6.4",
+      "url": "https://github.com/Ankokomen/Tickassist-Public/releases/download/v6.4/TickAssist-6.4-update.zip",
+      "sha256": "8ed61a44ecd074c3105e993c2a22f15c0cd15d91a551335524fb333931445330",
+      "notes": "Moves this copy to the new update system."
+    }
+  ]
+}
