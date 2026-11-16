@@ -410,3 +410,10 @@ mapped fields; a filled field can in turn trigger another sheet (a serial number
 can fill the Imaging Package, which then fills the OS and Romexis from the package
 sheet). Old single-sheet settings are carried over automatically.
 
+
+## License
+
+TickAssist is source-available, not open source. You may use and change it
+privately and pass it on to people you know; publishing it or using it
+commercially needs permission from its authors. The terms are in `LICENSE.md`,
+which is installed with the program.

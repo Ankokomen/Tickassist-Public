@@ -57,6 +57,13 @@ class Server(ThreadingHTTPServer):
     # without its script.
     request_queue_size = 128
 
+    def handle_error(self, request, client_address):
+        # The browser went away before the answer was all sent (a reload, a
+        # closed tab, a long-poll it gave up on): nothing went wrong here.
+        if isinstance(sys.exc_info()[1], ConnectionError):
+            return
+        super().handle_error(request, client_address)
+
 
 def make_server(app, host, port):
     modules, errors = MODULES, ()

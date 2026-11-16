@@ -24,6 +24,16 @@ A copy older than 6.4 has to be moved over once: set Settings > Updates to
 `https://github.com/Ankokomen/Tickassist-Public` and press Check (it installs
 6.4, which updates itself from there on), or run the installer above.
 
+## License and contributing
+
+TickAssist is source-available, not open source: you may use and change it
+privately and pass it on to people you know, but you may not publish it or
+use it commercially without permission from its authors. The terms are in
+[LICENSE.md](LICENSE.md).
+
+Fixes and improvements are welcome as pull requests here; how they get into
+the program is in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## More
 
 How everything works is in the [user guide](USER-GUIDE.md). This repository

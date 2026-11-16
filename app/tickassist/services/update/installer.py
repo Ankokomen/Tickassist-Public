@@ -148,7 +148,9 @@ def apply(info, root, data_dir, current, allow_older=False, extension=False, tok
         except Exception as err:            # put the old version back
             _restore(root, backup)
             if isinstance(err, PermissionError):
-                raise UpdateError("TickAssist can't write to its own folder, so it can't update itself. "
-                                  "Run the installer again instead (the installer keeps your settings).")
+                raise UpdateError("The update was undone: TickAssist couldn't replace one of its own files "
+                                  "(%s). Close any other TickAssist window and try again, or run the "
+                                  "installer instead - it keeps your settings."
+                                  % os.path.basename(getattr(err, "filename", None) or "") or "a file in use")
             raise UpdateError(f"The update failed and was undone: {err}")
     return {"old": current, "new": new_version, "files": len(written)}
