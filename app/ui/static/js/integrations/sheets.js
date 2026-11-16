@@ -16,6 +16,9 @@ async function saveSheetSettings() {
     await api("POST", "/api/settings", {
       sheet_sources: collectSheetSources(),
       sheet_check: $("sheet-check-on").checked,
+      roster_url: $("roster-url").value.trim(),
+      roster_key: $("roster-key").value.trim(),
+      roster_mode: $("roster-mode").value,
     });
     // A new link or mapping deserves a fresh look at what is in the note.
     sheetLast = {};

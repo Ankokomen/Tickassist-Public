@@ -2738,3 +2738,12 @@ body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-
 .import-extra-text { font-size: 12.5px; overflow-wrap: anywhere; }
 .import-extra-row .select { max-width: 190px; flex: 0 0 190px; }
 
+
+/* Tech roster block in the Google Sheets drawer */
+.roster-box { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--slate-800); }
+.roster-box .settings-subhead { font-size: 14px; font-weight: 600; margin: 0 0 8px; color: var(--slate-100); }
+.roster-box .label { display: block; margin-top: 14px; }
+.roster-box .btn-row { margin-top: 14px; }
+.roster-box .cw-status { margin-top: 12px; }
+.roster-box ol { padding-left: 20px; margin: 14px 0 10px; line-height: 1.6; }
+.roster-box .textarea { margin-top: 4px; }

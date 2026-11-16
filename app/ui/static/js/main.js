@@ -27,6 +27,7 @@ import { saveTicket } from "./generator/save.js";
 import { initIncomingCalls, pollIncoming } from "./integrations/callwatch.js";
 import { initD365 } from "./integrations/d365.js";
 import { drawerEl, initDrawers, openDrawer, openDrawerName } from "./integrations/drawers.js";
+import { initRoster } from "./integrations/roster.js";
 import { initSheet } from "./integrations/sheets.js";
 import { initTransfer } from "./integrations/transfer.js";
 import { initListPanels, loadAllLists } from "./lists/lists.js";
@@ -152,6 +153,7 @@ function init() {
   update();
   initIncomingCalls();
   initSheet();
+  initRoster();
   initUpdates();
   initImportReport();
   initPhotos();

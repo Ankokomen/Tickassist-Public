@@ -39,6 +39,9 @@ export const DRAWER_FILLERS = {
   sheet: (s) => {
     renderSheetSources(s.sheet_sources || []);
     $("sheet-check-on").checked = s.sheet_check !== false;
+    $("roster-url").value = s.roster_url || "";
+    $("roster-key").value = s.roster_key || "";
+    $("roster-mode").value = s.roster_mode || "ask";
   },
   d365: (s) => loadD365Settings(s),
   transfer: (s) => { $("tr-url").value = s.transfer_url || ""; },

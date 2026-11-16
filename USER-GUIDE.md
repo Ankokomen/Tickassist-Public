@@ -311,6 +311,31 @@ The sheet is fetched by TickAssist itself (not the browser) and cached for a min
 if Google can't be reached, the last copy is used. Needs internet. It is a
 feature (**Google Sheet lookup**) that can be switched off like the others.
 
+### Tech roster (adding new callers)
+
+When a ticket is saved, TickAssist can check its Contact Name and Phone
+against a roster sheet (Tech Name in column A, Phone in B, Dealer in C) and,
+if that pair isn't there, add it to the next empty row - after asking, or
+automatically (Settings > Integrations > Google Sheets > Tech roster). A
+number that is already in the roster under another name always asks first
+and shows whose it is, so a shared line gets a second person on purpose and
+a name typed differently doesn't become a second row by accident. A
+shared sheet link can only be read, so a small Google Apps Script in the
+sheet does the writing; Settings shows the script to paste in and the steps.
+It matches names ignoring case and spacing, and phones by their last ten
+digits, and does the check and the write under a lock so several PCs saving
+at once never double a row. Saving a ticket never waits on it and never fails
+because of it.
+
+Nothing is sent until the script's address and key are entered. The key is
+what protects the sheet - anyone holding the address and the key can add
+rows - so choose a long random one and treat it like a password. The script
+can only answer whether a name and phone are in the roster and add a row; it
+cannot read the roster out or change what is there. There is no undo: every
+row TickAssist adds is listed in the sheet's "TickAssist log" tab, and a row
+added by mistake is deleted in the sheet by hand. The feature switch is *Tech
+roster sheet*.
+
 ## Features
 
 **Settings → Features** (the button at the top right of Settings) shows which add-ons this copy offers: incoming calls

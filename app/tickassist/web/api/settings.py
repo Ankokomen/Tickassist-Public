@@ -6,7 +6,7 @@ import re
 
 from ...domain.required import clean_rules
 from ...domain.settings import flag
-from ...services import llm, serverinfo, sheets, transfer
+from ...services import llm, roster, serverinfo, sheets, transfer
 from ...services.callwatch.browser import DEFAULT_MAX_URL
 from ..http import HttpError
 from ..router import Routes
@@ -49,6 +49,9 @@ def page_settings(app):
         "sheet_map": s["sheet_map"],
         "sheet_overwrite": flag(s["sheet_overwrite"]),
         "sheet_check": flag(s["sheet_check"]),
+        "roster_url": s["roster_url"],
+        "roster_key": s["roster_key"],
+        "roster_mode": roster.mode(s),
         "call_watch": app.calls.status(),
         "d365_org_url": s["d365_org_url"],
         "d365_tenant_id": s["d365_tenant_id"],
@@ -147,6 +150,9 @@ FORM = {
     "sheet_overwrite": _flag,
     "sheet_sources": _sheet_sources,
     "sheet_check": _flag,
+    "roster_url": roster.check_url,
+    "roster_key": lambda v: str(v).strip()[:200],
+    "roster_mode": _choice(*roster.MODES),
     "update_token": _token,
     "auto_update": _flag,
     "fi_open_all": _flag,

@@ -14,6 +14,7 @@ import { update } from "./preview.js";
 import { clearRepeatCaller, forgetRepeatDismissal } from "./repeat-caller.js";
 import { missingRequired, reportMissingRequired } from "./required.js";
 import { resetIncomingState, takePendingIncoming } from "../integrations/callwatch.js";
+import { rosterAfterSave } from "../integrations/roster.js";
 import { autoRegister, ENV_COMBOS, FREE_LISTS, reportUnlisted, unlistedFields } from "../lists/lists.js";
 import { switchPage } from "../pages/nav.js";
 import { discardDraftPhotos, forgetPhotos, loadPhotos, photos } from "../photos.js";
@@ -69,6 +70,8 @@ export async function saveTicket(asNew = false, bypass = false) {
       loadPhotos();
       showToast(n ? `Ticket saved with ${n} photo${n === 1 ? "" : "s"}` : "Ticket saved", "green");
     }
+    // Not awaited: the ticket is saved, the roster is a courtesy.
+    rosterAfterSave(ticket);
   } catch (err) {
     showToast(err.message, "red");
   }

@@ -25,6 +25,8 @@ FEATURES = [
      "Sign in to D365, create cases and send notes. Off: New D365 Case opens the browser form as before."),
     ("sheet", "Google Sheets lookup",
      "Fills fields from rows of shared Google Sheets when an Imaging Package, serial number or other key is entered."),
+    ("roster", "Tech roster sheet",
+     "Checks the caller's Contact Name + Phone against a roster sheet when a ticket is saved and adds them to the next empty row if they are not there."),
     ("transfer", "Call transfer",
      "Sends the active call to a troubleshooting queue from the Transfer call panel."),
     ("polish", "AI Polish",

@@ -5,11 +5,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
 from . import pages
-from .api import calls, d365, lists, photos, settings, tickets, tools, updates
+from .api import calls, d365, lists, photos, roster, settings, tickets, tools, updates
 from .http import Request
 from .router import Router
 
-MODULES = (pages, settings, tickets, photos, lists, calls, d365, tools, updates)
+MODULES = (pages, settings, tickets, photos, lists, calls, d365, tools, roster, updates)
 
 # Successful requests not worth a console line: static files, and the
 # incoming-call long-poll that re-asks every 25 s all shift.

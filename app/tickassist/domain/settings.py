@@ -46,6 +46,11 @@ DEFAULTS = {
     "sheet_map": "",
     "sheet_overwrite": "0",
     "sheet_check": "1",           # outline values that differ from the sheet row
+    # Tech roster (services/roster.py): the Apps Script web app that adds
+    # Tech Name / Phone / Dealer rows to a sheet, its secret, and ask | auto | off.
+    "roster_url": "",
+    "roster_key": "",
+    "roster_mode": "ask",
     # Updates (services/update).
     "update_url": "",             # office file only (PCs could set it before 6.6)
     "update_token": "",           # GitHub access token, for a private repository

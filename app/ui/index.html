@@ -1179,6 +1179,46 @@
         <div class="field-help">Columns whose header already reads like a field (OS, Romexis Ver, DIDAPI, Device Firmware, Reco Unit, ...) map by themselves; list only the ones that don't in a sheet's mapping. Fields: imaging_package, os_version, device_type, serial_number, device_firmware, device_tool_version, didapi, romexis, reco_os, reco_pc, reco_firmware, part_rec, error_info, dealer_name, contact, contact_type, problem, next_steps, outcome.</div>
         <label class="check-row"><input type="checkbox" id="sheet-check-on">
           <span>Outline values in the note that differ from the sheet row for the Imaging Package</span></label>
+
+        <div class="roster-box" data-feature="roster">
+          <h4 class="settings-subhead">Tech roster (adds new callers)</h4>
+          <p class="settings-hint">A sheet with Tech Name in column A, Phone in column B and Dealer in column C.
+            When a ticket is saved, TickAssist looks for that Contact Name + Phone and, if the pair isn't there,
+            adds it to the next empty row. A shared link can only be read, so a small Google script in the sheet
+            does the writing: press &ldquo;Show the script&rdquo; and follow the steps. Nothing is sent until
+            both boxes below are filled in; after that each saved ticket's contact name, phone and dealer go to
+            that sheet.</p>
+          <label class="label" for="roster-url">Script address (web app, ends /exec)</label>
+          <input class="input mono" type="text" id="roster-url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false">
+          <label class="label" for="roster-key">Key (the same secret as in the script)</label>
+          <input class="input mono masked" type="text" id="roster-key" autocomplete="off" spellcheck="false"
+                 data-lpignore="true" data-1p-ignore data-form-type="other">
+          <div class="field-help">Anyone who has the address and this key can add rows to the roster, so treat
+            it like a password.</div>
+          <label class="label" for="roster-mode">When a caller isn't in the roster</label>
+          <select class="select" id="roster-mode">
+            <option value="ask">Ask me whether to add them</option>
+            <option value="auto">Add them automatically</option>
+            <option value="off">Do nothing</option>
+          </select>
+          <div class="field-help">A number that is already in the roster under another name always asks first,
+            and shows whose it is. Every row TickAssist adds is listed in the sheet's &ldquo;TickAssist log&rdquo; tab.</div>
+          <div class="btn-row">
+            <button class="btn small" id="btn-roster-test" type="button" data-no-dirty>Test</button>
+            <button class="btn small" id="btn-roster-script" type="button" data-no-dirty>Show the script</button>
+          </div>
+          <div class="cw-status hidden" id="roster-status" role="status"></div>
+          <div class="hidden" id="roster-script-box">
+            <ol class="settings-hint">
+              <li>Open the roster sheet, then Extensions &rarr; Apps Script.</li>
+              <li>Delete what is there and paste the script below. Change the KEY line to a long random secret (and the TAB / HEADER_ROWS lines if your sheet differs).</li>
+              <li>Deploy &rarr; New deployment &rarr; Web app. Execute as <b>Me</b>, who has access <b>Anyone</b>. Allow when asked.</li>
+              <li>Copy the Web app address and the key into the boxes above, press Test, then Save.</li>
+            </ol>
+            <textarea class="textarea mono small" id="roster-script" rows="10" readonly spellcheck="false" data-no-dirty></textarea>
+            <div class="btn-row"><button class="btn small" id="btn-roster-copy" type="button" data-no-dirty>Copy the script</button></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="drawer-foot">
