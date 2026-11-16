@@ -5,7 +5,8 @@ MAX runs in a browser, so there is no API to ask for the caller. Two readers:
   * reader.ps1 uses Windows UI Automation - the interface screen readers use -
     to read windows whose title matches the keywords, and Windows toast
     notifications (MAX's "New Contact" toast). No admin rights, nothing to
-    install. Windows hides a minimized window's contents from it.
+    install. Windows hides a minimized window's contents from it, and a
+    browser only shows it the tab in front.
   * browser.py reads MAX through the debugging port of a browser started with
     "Open MAX", which works minimized or hidden.
 """
@@ -26,9 +27,11 @@ from .rules import DEFAULT_MATCH, classify, keyword_regex, parse_rules, split_li
 _READER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reader.ps1")
 
 
-def _reader_script():
-    with open(_READER, encoding="utf-8") as fh:
-        return fh.read()
+# What PowerShell is started with: a line that loads reader.ps1 and runs it.
+# The script itself can't go on the command line - Windows caps that at 32,767
+# characters, which an encoded script of this size passes - and running it as
+# a file would put it under the PC's script execution policy.
+_BOOTSTRAP = "& ([scriptblock]::Create([IO.File]::ReadAllText($env:TA_SCRIPT, [Text.Encoding]::UTF8)))"
 
 
 class CallWatcher:
@@ -52,6 +55,7 @@ class CallWatcher:
         self._generation = 0
         self.enabled = False
         self.match = DEFAULT_MATCH
+        self.own_profile = ""          # the Open MAX browser's profile folder (Calls sets it)
         self.status = {"state": "off", "message": "", "windows": 0,
                        "last_scan": None}
 
@@ -172,6 +176,9 @@ class CallWatcher:
             time.sleep(self.INTERVAL_MS / 1000.0 if msg["state"] == "connected" else 3.0)
         self._cdp.close()
 
+    def want_max(self):
+        self._cdp.want_max()
+
     def snapshot_status(self):
         s = dict(self.status)
         s["supported"] = self.SUPPORTED
@@ -191,8 +198,9 @@ class CallWatcher:
         self.status.update(kw)
 
     def _spawn(self, pattern):
-        encoded = base64.b64encode(_reader_script().encode("utf-16-le")).decode("ascii")
-        env = dict(os.environ, TA_MATCH=pattern,
+        encoded = base64.b64encode(_BOOTSTRAP.encode("utf-16-le")).decode("ascii")
+        env = dict(os.environ, TA_SCRIPT=_READER, TA_MATCH=pattern, TA_OWN=self.own_profile or "",
+                   TA_PARENT=str(os.getpid()),      # the reader ends when this process does
                    TA_TOAST=keyword_regex(self.match) or "(?!)",
                    TA_URL=URL_MATCH,
                    TA_INTERVAL_MS=str(self.INTERVAL_MS))
@@ -350,14 +358,34 @@ class CallWatcher:
         sources = msg.get("w") or []
         if isinstance(sources, dict):
             sources = [sources]
+        # Windows of the browser Open MAX started: the window reader only
+        # names them, the browser reader is what reads them.
+        own = [s for s in sources if s.get("own")]
+        sources = [s for s in sources if not s.get("own")]
         windows = [s for s in sources if s.get("k") == "window"]
         self._set(scan=self._scan_info(sources),
                   toasts=len([s for s in sources if s.get("k") == "toast"]))
+        # A window that is minimized, or whose page came back empty, has
+        # nothing to say this time. It is left out of what the detector is
+        # fed, which then remembers what it last showed.
+        readable = [s for s in sources if s.get("k") != "window"
+                    or (not s.get("min") and (s.get("text") or "").strip())]
+        reading = [s for s in readable if s.get("k") == "window"]
+        if reading:
+            message = f"Reading {len(reading)} matching window{'' if len(reading) == 1 else 's'}."
+        elif own and self.status.get("browser") != "connected":
+            message = ("MAX is open in the browser Open MAX started, but TickAssist can't reach that browser. "
+                       "Close it and press Open MAX again.")
+        elif windows and all(s.get("min") for s in windows):
+            message = ("MAX is minimized, so Windows hides what it shows. Restore it - or start it with "
+                       "Open MAX, which can be read minimized.")
+        elif windows:
+            message = "The MAX window is there, but nothing in it could be read just now."
+        else:
+            message = self._no_match_message(msg.get("all"))
         self._set(state="running", windows=len(windows), last_scan=time.time(),
-                  titles=[s.get("title", "")[:80] for s in windows][:5],
-                  message=(f"Reading {len(windows)} matching window"
-                           f"{'' if len(windows) == 1 else 's'}." if windows
-                           else self._no_match_message(msg.get("all"))))
+                  titles=[s.get("title", "")[:80] for s in windows][:5], message=message,
+                  scan_ms=msg.get("ms"), toast_ms=msg.get("toast_ms"))
         if msg.get("err"):
             self._set(message=f"Scan problem: {msg['err'][:200]}")
         at = self.status.get("call_page_at")
@@ -383,7 +411,7 @@ class CallWatcher:
             line = next((ln for ln in blob.splitlines() if "transfer_pop2" in ln), "")
             self._set(page_text=line[:110])
             self._handle_url(blob)
-        for ev in self.detector.feed(sources):
+        for ev in self.detector.feed(readable):
             self.calls.publish(ev["phone"], ev["source"], ev.get("contact_type"),
                                ev.get("matched"), ev.get("update", False),
                                ev.get("case_number"))

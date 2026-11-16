@@ -28,7 +28,7 @@ class App:
             extra, updates = dev.FEATURES, dev.Updates
         self.features = Features(self.owner, extra)
         self.lists = Lists(self.store.lists, self.settings)
-        self.calls = Calls()
+        self.calls = Calls(config.data_dir)
         self.crm = D365Client(self.settings)
         self.updates = updates(config, self.settings)
 

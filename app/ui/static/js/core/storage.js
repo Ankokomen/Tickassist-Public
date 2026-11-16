@@ -9,6 +9,7 @@ export const KEYS = {
   d365Choices: "tickassist_d365_choices_v1",
   alerts: "tickassist_alerts_v1",
   settingsTab: "tickassist_settings_tab",
+  fiOpenAll: "tickassist_fi_open_all",  // a copy of the fi_open_all setting, for the first paint
   // sessionStorage
   featuresSaved: "tickassist_feat_saved",
   autoUpdateSeen: "tickassist_auto_seen",

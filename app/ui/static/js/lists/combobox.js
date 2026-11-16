@@ -12,10 +12,11 @@ export function createCombobox(inputId, menuId, listKey, onChoose, filter) {
 
   function render() {
     const q = input.value.trim().toLowerCase();
-    let items = LISTS[listKey].items || [];
+    // A list that is switched off suggests nothing: the field is plain text.
+    let items = LISTS[listKey].off ? [] : (LISTS[listKey].items || []);
     if (filter) items = filter(items);
     const matches = q ? items.filter((it) => it.name.toLowerCase().includes(q)) : items.slice();
-    menu.innerHTML = !matches.length && !q ? "" : matches.length
+    menu.innerHTML = LISTS[listKey].off || (!matches.length && !q) ? "" : matches.length
       ? matches.map((it) =>
           `<div class="combo-item" role="option" data-name="${escapeHtml(it.name)}">${escapeHtml(it.name)}</div>`
         ).join("")

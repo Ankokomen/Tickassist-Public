@@ -394,6 +394,11 @@ function renderCallDiag(w) {
     lines.push(line + ".");
     if (s.hint) lines.push(`-> ${s.hint}`);
   });
+  if (w.state === "running" && w.scan_ms != null) {
+    // A scan should take a fraction of a second; a call is noticed that much late.
+    lines.push(`Last scan took ${w.scan_ms < 1000 ? w.scan_ms + " ms" : (w.scan_ms / 1000).toFixed(1) + " s"}.` +
+      (w.scan_ms > 3000 ? " That is slow: another program is keeping the browser busy, and a call will be noticed late." : ""));
+  }
   if (w.browser === "connected" && w.browser_message) lines.push(w.browser_message);
   else if (w.state === "running" || w.state === "unsupported") {
     lines.push("Tip: start MAX with the Open MAX button (or the desktop shortcut) and TickAssist can read it even when it is minimized.");

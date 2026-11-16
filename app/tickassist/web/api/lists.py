@@ -21,6 +21,17 @@ def import_from_sheets(app, req):
     return app.lists.import_from_sheets()
 
 
+@routes.post("/api/lists/([a-z_]+)/switch")
+def switch_list(app, req, key):
+    """Switch a System Environment list on ({"on": true}) or off."""
+    return app.lists.switch(key, bool(req.json().get("on")))
+
+
+@routes.delete("/api/lists/([a-z_]+)")
+def clear_list(app, req, key):
+    return {"removed": app.lists.clear(key)}
+
+
 @routes.post("/api/lists/([a-z_]+)")
 def add_item(app, req, key):
     return Response.json({"item": app.lists.add(key, req.json().get("name", ""))}, 201)

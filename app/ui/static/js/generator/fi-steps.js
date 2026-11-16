@@ -1,7 +1,9 @@
 /* ---- First Impressions: step by step ------------------------------------------ */
 
+import { api } from "../core/api.js";
 import { $, getVal, on } from "../core/dom.js";
 import { clip } from "../core/format.js";
+import { KEYS, store } from "../core/storage.js";
 import { showToast } from "../core/ui.js";
 import { callType, FIRST_IMPRESSIONS } from "./calltype.js";
 import { editing } from "./edit-session.js";
@@ -13,8 +15,9 @@ import { missingRequired, REQ_LABEL, requiredFieldIds } from "./required.js";
 // required fields (Settings > Required Fields) are filled folds into a summary
 // line when you leave it, and the next one opens; a section stays locked until
 // the ones above it are filled in. Nothing is cleared. "Open all sections", or
-// Shift+click on a locked section, lifts the order; Troubleshooting and editing
-// a saved ticket never use it.
+// Shift+click on a locked section, lifts the order - and that choice is
+// remembered on this PC until "Back to step by step" is pressed, across calls,
+// saves and restarts. Troubleshooting and editing a saved ticket never use it.
 const FI_STEPS = [
   { key: "caller", title: "Caller", summary: () => [getVal("contact"), getVal("phone"), getVal("contactType") === "Dealer" ? getVal("dealerName") : ""].filter(Boolean).join(" \u00b7 ") },
   { key: "env", title: "System Environment", summary: () => [getVal("deviceType"), getVal("serialNumber"), [getOsLabel(), getVal("osVersion")].filter(Boolean).join(" ")].filter(Boolean).join(" \u00b7 ") },
@@ -24,6 +27,30 @@ const FI_STEPS = [
 ];
 let fiKeyAt = 0;     // when Tab was last pressed
 let fiFolded = {};   // step key -> folded by leaving it (or by its header)
+
+// The choice is a TickAssist setting (fi_open_all), saved with the others, so
+// it holds whichever browser or address the page is opened in. The browser
+// keeps a copy only so the page can draw itself right before the settings
+// have arrived; <body> mirrors it for the styles and fiActive.
+function setOpenAll(all) {
+  remember(all);
+  api("POST", "/api/settings", { fi_open_all: all })
+    .catch((err) => showToast("Couldn't save that choice: " + err.message, "red"));
+}
+function remember(all) {
+  if (all) store.set(KEYS.fiOpenAll, "1"); else store.remove(KEYS.fiOpenAll);
+  showOpenAll();
+}
+function showOpenAll() {
+  document.body.dataset.fiMore = store.get(KEYS.fiOpenAll) === "1" ? "1" : "";
+}
+
+// The settings arrived: what they say goes.
+export function applyOpenAllSetting(all) {
+  if ((store.get(KEYS.fiOpenAll) === "1") === !!all) return;
+  remember(!!all);
+  renderFiSteps();
+}
 
 function fiStepEl(key) { return document.querySelector(`[data-fi-step="${key}"]`); }
 function fiStepIds(key) {
@@ -64,9 +91,10 @@ export function renderFiSteps() {
   });
 }
 
-// A new rotation or a cleared form starts step by step from the top.
+// A new rotation or a cleared form starts from the top: nothing folded. How
+// the sections are shown - one at a time or all open - stays as it was chosen.
 export function resetFiSteps() {
-  document.body.dataset.fiMore = "";
+  showOpenAll();
   fiFolded = {};
 }
 
@@ -79,8 +107,9 @@ export function revealFields(ids) {
 }
 
 export function initFiMore() {
+  showOpenAll();
   on("fi-more", "click", () => {
-    document.body.dataset.fiMore = document.body.dataset.fiMore === "1" ? "" : "1";
+    setOpenAll(document.body.dataset.fiMore !== "1");
     renderFiSteps();
   });
   document.querySelectorAll("[data-fi-head]").forEach((head) => head.addEventListener("click", (e) => {
@@ -88,7 +117,7 @@ export function initFiMore() {
     const key = head.dataset.fiHead;
     const state = fiStepEl(key).dataset.state;
     if (state === "locked") {
-      if (e.shiftKey) { document.body.dataset.fiMore = "1"; renderFiSteps(); return; }
+      if (e.shiftKey) { setOpenAll(true); renderFiSteps(); return; }
       const i = FI_STEPS.findIndex((s) => s.key === key);
       const blocker = FI_STEPS.slice(0, i).find((s) => fiStepMissing(s.key).length);
       showToast(blocker ? `Fill in ${fiStepMissing(blocker.key).map((id) => REQ_LABEL[id] || id).join(", ")} first` : "Fill in the sections above first", "amber");

@@ -1,7 +1,6 @@
 """Incoming calls from MAX, the screen-pop route, and transferring a call."""
 
 from ...services import transfer
-from ...services.callwatch.browser import launch_max
 from ..http import Response
 from ..router import Routes
 
@@ -47,7 +46,7 @@ def open_max(app, req):
     settings = app.settings.all()
     url = (data.get("max_url") or settings.get("max_url") or "").strip()
     prefer = data.get("max_browser") or settings.get("max_browser") or "auto"
-    result = launch_max(url, app.config.data_dir, prefer if prefer in ("auto", "chrome", "edge") else "auto")
+    result = app.calls.open_max(url, prefer if prefer in ("auto", "chrome", "edge") else "auto")
     return Response.json(result, 200 if result.get("ok") else 500)
 
 

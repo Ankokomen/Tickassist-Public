@@ -2,7 +2,8 @@
 
 A list store keeps these promises: entries are {"id", "name"}, names are
 unique ignoring case, fixed lists always match the program exactly, and a
-list that has never been seen starts with its defaults.
+list that has never been seen starts with its defaults - once: a list that
+was emptied stays empty.
 """
 
 from ..domain import lists as catalog
@@ -58,6 +59,14 @@ class JsonLists:
             kept = [i for i in items if i["id"] != item_id]
             lists[key] = kept
             return len(kept) != len(items)
+
+    def clear(self, key):
+        """Empty a list; returns how many entries it had."""
+        catalog.check_key(key)
+        with self._file.edit() as lists:
+            count = len(lists.get(key, []))
+            lists[key] = []
+            return count
 
     def add_missing(self, key, names):
         """Add the names not already listed; duplicates are skipped."""

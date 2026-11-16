@@ -50,6 +50,10 @@ DEFAULTS = {
     "update_url": "",             # office file only (PCs could set it before 6.6)
     "update_token": "",           # GitHub access token, for a private repository
     "auto_update": "1",
+    # First Impressions: every section open ("1") instead of step by step.
+    "fi_open_all": "0",
+    # System Environment lists switched off (domain/lists.py), comma separated.
+    "lists_off": "",
     # Server-report import rules; empty = serverinfo.DEFAULT_RULES.
     "report_rules": "",
     # Dynamics 365 (services/d365.py). The refresh token never reaches the page.

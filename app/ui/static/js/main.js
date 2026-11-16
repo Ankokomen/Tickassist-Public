@@ -98,13 +98,19 @@ function initKeyboard() {
 }
 
 // /?page=settings opens that page directly, and &open=calls|d365|sheet|features
-// slides that drawer in over it.
+// slides that drawer in over it. That is for one arrival: the address is put
+// back to plain "/" straight away, or every later reload of this tab (and a
+// tab the browser restores) would open the same drawer again instead of the
+// Note Generator - which is what saving Features left behind.
 function openDeepLink() {
   const params = new URLSearchParams(location.search);
   const startPage = params.get("page");
   if (startPage) switchPage(startPage);
   const startDrawer = params.get("open");
   if (startDrawer) openDrawer(startDrawer);
+  if (startPage || startDrawer) {
+    try { history.replaceState(null, "", location.pathname); } catch (e) { /* the address just stays */ }
+  }
 }
 
 function init() {

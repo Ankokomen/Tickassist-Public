@@ -1743,6 +1743,28 @@ html[data-theme="light"] .integ-tile:hover { background: rgba(36, 65, 144, 0.05)
 .conn-item:hover { background: var(--slate-800); color: var(--slate-100); }
 .conn-item:focus-visible { outline: none; box-shadow: var(--ring); }
 .conn-name { font-weight: 600; white-space: nowrap; }
+/* A connection with something to do about it: its button sits where the
+   status would. */
+.conn-row { display: flex; align-items: center; gap: 4px; }
+.conn-row .conn-item { flex: 1; min-width: 0; }
+.conn-action {
+  flex: none;
+  margin-right: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--slate-700);
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--brand-400);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.conn-action:hover { background: rgba(var(--brand-rgb), 0.18); border-color: var(--brand-500); }
+.conn-action:focus-visible { outline: none; box-shadow: var(--ring); }
+.conn-action:disabled { opacity: 0.55; cursor: default; }
 .conn-state {
   margin-left: auto;
   font-size: 11px;
@@ -1755,7 +1777,7 @@ html[data-theme="light"] .integ-tile:hover { background: rgba(36, 65, 144, 0.05)
 @media (max-width: 720px) {
   .conn { padding-top: 10px; }
   .conn-item { justify-content: center; padding: 8px 0; }
-  .conn-name, .conn-state { display: none; }
+  .conn-name, .conn-state, .conn-action { display: none; }
 }
 
 /* ======================================================================== */
@@ -2669,6 +2691,12 @@ body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-
 .env-lists-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 10px; }
 .env-list-title { font-size: 12px; font-weight: 700; margin: 0 0 6px; color: var(--slate-300); }
 .env-list-panel .managed-list { max-height: 220px; overflow-y: auto; }
+/* Each System Environment list: its switch and Clear, under the title. */
+.env-list-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; }
+.env-list-switch { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--slate-400); cursor: pointer; }
+.env-list-tools .btn.small { padding: 4px 10px; font-size: 11.5px; }
+.env-list-panel.off .env-list-title { color: var(--slate-500); }
+.env-list-panel.off .managed-list .empty { text-align: left; line-height: 1.5; }
 
 /* ---- several Google Sheets in Settings ---- */
 .sheet-sources { display: flex; flex-direction: column; gap: 12px; }

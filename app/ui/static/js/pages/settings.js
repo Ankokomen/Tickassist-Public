@@ -4,6 +4,7 @@ import { api } from "../core/api.js";
 import { $, on } from "../core/dom.js";
 import { KEYS, store } from "../core/storage.js";
 import { showToast } from "../core/ui.js";
+import { applyOpenAllSetting } from "../generator/fi-steps.js";
 import { applyRequiredMarks, resetReqPanel } from "../generator/required.js";
 import { renderCallWatchStatus } from "../integrations/callwatch.js";
 import { loadD365Settings, setD365State } from "../integrations/d365.js";
@@ -54,6 +55,7 @@ export async function loadSettings() {
     const s = await api("GET", "/api/settings");
     settingsCache = s;
     fillUpdateSettings(s);
+    applyOpenAllSetting(s.fi_open_all);
     if ($("rpt-rules") && document.activeElement !== $("rpt-rules")) $("rpt-rules").value = s.report_rules || "";
     if ($("llm-prompt") && document.activeElement !== $("llm-prompt")) $("llm-prompt").value = s.polish_prompt || "";
     $("llm-provider").value = s.llm_provider || "gemini";

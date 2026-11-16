@@ -91,9 +91,15 @@ to accept or use it.
 ## 5. Third-party components
 
 The Software ships with components that belong to others and stay under
-their own licenses, which this license does not change: the Python runtime
-(Python Software Foundation License) and the IBM Plex and Lato fonts (SIL
-Open Font License 1.1).
+their own licenses, which this license does not change:
+
+- the Python runtime, under the Python Software Foundation License
+  (`runtime/LICENSE.txt` in an installed copy);
+- the IBM Plex Sans and IBM Plex Mono fonts, copyright IBM Corp., and the
+  Lato font, copyright tyPoland Lukasz Dziedzic, each under the SIL Open
+  Font License 1.1. Their notices and the full text of that license are
+  beside the font files, in `app/ui/static/fonts/OFL-IBM-Plex.txt` and
+  `app/ui/static/fonts/OFL-Lato.txt`.
 
 ## 6. Ending
 

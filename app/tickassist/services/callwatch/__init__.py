@@ -11,6 +11,7 @@ Calls is what the rest of the program uses.
 
 import re
 
+from .browser import launch_max, profile_dir
 from .incoming import IncomingCalls
 from .phones import normalize_phone, one_case
 from .rules import DEFAULT_MATCH, DEFAULT_RULES
@@ -22,9 +23,12 @@ TEST_CALL_DIGITS = "8005550100"
 
 
 class Calls:
-    def __init__(self):
+    def __init__(self, data_dir=None):
+        self.data_dir = data_dir
         self.incoming = IncomingCalls()
         self.watcher = CallWatcher(self.incoming)
+        if data_dir:
+            self.watcher.own_profile = profile_dir(data_dir)
 
     def configure(self, settings, features):
         """Apply settings and feature switches. Switched off: no reading MAX at
@@ -45,6 +49,16 @@ class Calls:
 
     def status(self):
         return self.watcher.snapshot_status()
+
+    def open_max(self, url, prefer="auto"):
+        """Open MAX in a browser TickAssist can read, and go on to MAX in it
+        once signed in - again, if its browser is already open."""
+        # Its window starts out of sight only while the reader is running: that
+        # is what brings MAX - or the sign-in - on screen.
+        result = launch_max(url, self.data_dir, prefer, hidden=self.watcher.enabled)
+        if result.get("ok"):
+            self.watcher.want_max()
+        return result
 
     def wait(self, since, timeout):
         return self.incoming.wait(since, timeout)

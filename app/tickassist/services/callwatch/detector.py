@@ -13,9 +13,16 @@ Support" - is matched against the caller-type rules to choose Contact Type.
 If MAX draws the skill a moment after the number, a follow-up event types the
 call when it lands.
 
+MAX is not always there to be read: its tab goes to the background, its
+window is minimized, a read comes back empty. What it showed is remembered
+meanwhile, so when it is back the difference is what happened while it was
+away. A number that is new then counts only while MAX shows a call in
+progress - one that came and went is just another row of the history.
+
 Platform-independent and unit-testable anywhere: no Windows calls in here.
 """
 
+import re
 import time
 from collections import Counter
 
@@ -38,6 +45,29 @@ CONTEXT_SECONDS = 8
 CASE_SECONDS = 120
 
 
+# How long a window that can't be read is remembered.
+AWAY_SECONDS = 30 * 60
+
+# What MAX draws only while a call is in progress: its call controls, each on
+# a line of its own.
+_LIVE = re.compile(r"^(hold|mute|incoming)$", re.IGNORECASE)
+
+# A window whose title changed still shows the same page when at least this
+# share of what it showed is still there (MAX retitles itself around a call).
+SAME_PAGE = 0.5
+
+
+def call_in_progress(lines):
+    return any(_LIVE.match(ln) for ln in lines)
+
+
+def same_page(before, now):
+    """Whether two readings of a window (their lines) are of one page."""
+    if not before:
+        return False
+    return len(set(before) & set(now)) >= SAME_PAGE * len(set(before))
+
+
 class CallDetector:
     """Turns successive screen snapshots into "this is the new caller" events.
 
@@ -56,6 +86,7 @@ class CallDetector:
         # missing its skill (for CONTEXT_SECONDS) or case number (CASE_SECONDS).
         self._awaiting = {}
         self._recent = {}        # number -> time it was last reported
+        self._gone = {}          # source key -> when it stopped being readable
         self.last_ambiguous = None
         self.last_call = None
 
@@ -128,6 +159,7 @@ class CallDetector:
             key = f"{kind}:{src.get('id')}"
             title = src.get("title") or ""
             present.add(key)
+            returning = self._gone.pop(key, None) is not None
             text = src.get("text") or ""
             numbers = [n for n in find_phones(f"{title}\n{text}")
                        if n not in self.ignore]
@@ -135,12 +167,13 @@ class CallDetector:
             prev = self._seen.get(key)
             self._seen[key] = (title, set(numbers), counts)
 
-            if kind == "window" and (prev is None or prev[0] != title):
+            if kind == "window" and (prev is None or (prev[0] != title and not same_page(prev[2], counts))):
                 # First look at this window, or it now shows a different page
-                # (title changed): whatever is on it is the baseline. MAX may
-                # retitle itself as the call is answered, just as the case
-                # panel loads - so a call still waiting for its case number
-                # takes one if the new page shows exactly one.
+                # (another title and mostly other text): whatever is on it is
+                # the baseline. MAX may retitle itself as the call is
+                # answered, just as the case panel loads - so a call still
+                # waiting for its case number takes one if the new page shows
+                # exactly one.
                 self._fresh[key] = []
                 if prev is not None:
                     ev = self._late_details(key, kind, list(counts), [], now, whole=True)
@@ -166,6 +199,8 @@ class CallDetector:
             new = [n for n in numbers if prev is None or n not in prev[1]]
             if not new:
                 continue
+            if returning and not call_in_progress(counts):
+                continue             # it came and went while MAX could not be read
             if len(new) > 1:
                 self.last_ambiguous = {"numbers": [format_phone(n) for n in new],
                                        "source": kind, "at": now}
@@ -186,13 +221,18 @@ class CallDetector:
                            "matched": hit[1] if hit else None,
                            "case_number": case})
 
-        # Forget closed windows / dismissed toasts so a repeat caller later
-        # in the shift is detected again rather than suppressed as "seen".
+        # A dismissed toast is forgotten at once, so the next one is new
+        # again. A window that is not there to be read (closed, minimized, its
+        # tab in the background) is remembered for a while: see the top.
         for key in list(self._seen):
-            if key not in present:
+            if key in present:
+                continue
+            self._fresh.pop(key, None)
+            self._awaiting.pop(key, None)
+            gone = self._gone.setdefault(key, now)
+            if key.startswith("toast:") or now - gone > AWAY_SECONDS:
                 del self._seen[key]
-                self._fresh.pop(key, None)
-                self._awaiting.pop(key, None)
+                self._gone.pop(key, None)
         for num, at in list(self._recent.items()):
             if now - at > DEDUPE_SECONDS:
                 del self._recent[num]

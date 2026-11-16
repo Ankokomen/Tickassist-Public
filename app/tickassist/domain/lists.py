@@ -5,6 +5,10 @@ Three kinds:
   * verified  - System Environment lists: a value can only join if a linked
                 Google Sheet holds it
   * free      - anyone can add a value (dealers, Romexis versions)
+
+A System Environment list can also be switched off (the lists_off setting):
+its field in the note then takes any text, and nothing is suggested from,
+checked against or added to the list until it is switched on again.
 """
 
 FIXED_LISTS = {
@@ -67,6 +71,16 @@ def is_verified(key):
 
 def is_free(key):
     return key in FREE_ENV_LISTS
+
+
+def can_switch_off(key):
+    """Only the System Environment lists: the other fields need theirs."""
+    return key in ENV_LIST_COLUMNS
+
+
+def parse_off(value):
+    """The switched-off lists in a stored lists_off value, as a set."""
+    return {k.strip() for k in str(value or "").split(",") if can_switch_off(k.strip())}
 
 
 def editable_lists():

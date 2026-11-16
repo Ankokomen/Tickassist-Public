@@ -32,6 +32,10 @@ export async function loadList(key) {
     LISTS[key].items = data.items || [];
     LISTS[key].fixed = !!data.fixed;
     LISTS[key].verified = !!data.verified;
+    // A System Environment list can be switched off: its field then takes any
+    // text, with nothing suggested from, checked against or added to the list.
+    LISTS[key].canSwitchOff = !!data.can_switch_off;
+    LISTS[key].off = !!data.off;
     renderListPanel(key);
     if (LISTS[key].combo) LISTS[key].combo.render();
     if (LISTS[key].combo2) LISTS[key].combo2.render();
@@ -91,7 +95,7 @@ async function checkListed(id, announce) {
   if (!el || !key) return "ok";
   const typed = el.value.trim();
   el.classList.remove("list-invalid");
-  if (!typed) return "ok";
+  if (!typed || LISTS[key].off) return "ok";
   const hit = LISTS[key].items.find((it) => it.name.toLowerCase() === typed.toLowerCase());
   if (hit) { if (el.value !== hit.name) el.value = hit.name; return "ok"; }
   if (loadedListed[id] === typed.toLowerCase()) return "ok";   // unchanged on a saved note
@@ -149,13 +153,41 @@ function listHas(key, name) {
   return LISTS[key].items.some((it) => it.name.toLowerCase() === n);
 }
 
+// The switch and the Clear button of a System Environment list, under its title.
+function renderListTools(key, panel) {
+  const info = LISTS[key];
+  let tools = panel.querySelector(".env-list-tools");
+  if (!tools) {
+    tools = document.createElement("div");
+    tools.className = "env-list-tools";
+    panel.querySelector(".env-list-title").after(tools);
+  }
+  const title = panel.querySelector(".env-list-title").textContent.trim();
+  tools.innerHTML =
+    `<label class="env-list-switch" title="Off: the field in the note takes any text, and this list is not used at all">` +
+    `<input type="checkbox" class="switch" data-list-switch="${key}"${info.off ? "" : " checked"}` +
+    ` aria-label="Use the ${escapeHtml(title)} list"><span>${info.off ? "Off" : "On"}</span></label>` +
+    (info.fixed ? "" : `<button type="button" class="btn small" data-list-clear="${key}"` +
+      `${info.items.length ? "" : " disabled"} title="Remove every entry of this list">Clear list</button>`);
+  panel.classList.toggle("off", info.off);
+}
+
 function renderListPanel(key) {
   const list = document.querySelector(`[data-list="${key}"]`);
   if (!list) return;
-  const fixed = LISTS[key].fixed;
+  const fixed = LISTS[key].fixed, off = LISTS[key].off;
+  const panel = list.closest(".env-list-panel");
+  if (panel && LISTS[key].canSwitchOff) renderListTools(key, panel);
   // A fixed list has no Add row and no Remove buttons: only an update changes it.
   const add = document.querySelector(`[data-list-add="${key}"]`);
-  if (add && add.closest(".managed-add")) add.closest(".managed-add").classList.toggle("hidden", fixed);
+  if (add && add.closest(".managed-add")) add.closest(".managed-add").classList.toggle("hidden", fixed || off);
+  if (off) {
+    const n = LISTS[key].items.length;
+    list.innerHTML = '<div class="empty">Switched off. The field in the note takes any text; nothing is ' +
+      "suggested from, checked against or added to this list." +
+      (n ? ` Its ${n} entr${n === 1 ? "y is" : "ies are"} kept for when it is switched on again.` : "") + "</div>";
+    return;
+  }
   list.innerHTML = LISTS[key].items.length
     ? LISTS[key].items.map((it) => `
       <div class="managed-row">
@@ -187,10 +219,33 @@ async function deleteListItem(key, id) {
   } catch (err) { showToast(err.message, "red"); }
 }
 
+async function switchList(key, on) {
+  try {
+    await api("POST", `/api/lists/${key}/switch`, { on });
+    showToast(on ? "List switched on" : "List switched off - its field takes any text", "indigo");
+  } catch (err) { showToast(err.message, "red"); }
+  loadList(key);
+}
+
+async function clearList(key) {
+  const n = LISTS[key].items.length;
+  const panel = document.querySelector(`[data-list="${key}"]`).closest(".env-list-panel");
+  const title = panel ? panel.querySelector(".env-list-title").textContent.trim() : "this list";
+  const ok = await confirmModal(`Clear ${title}?`,
+    `All ${n} entr${n === 1 ? "y" : "ies"} will be removed from the list. Notes already saved keep what they say.` +
+    (LISTS[key].off ? "" : " To keep it from filling up again, switch the list off as well."), "Clear list");
+  if (!ok) return;
+  try {
+    const r = await api("DELETE", `/api/lists/${key}`);
+    showToast(`Removed ${r.removed} entr${r.removed === 1 ? "y" : "ies"}`, "slate");
+  } catch (err) { showToast(err.message, "red"); }
+  loadList(key);
+}
+
 // Register a value typed straight into a ticket field into its list on save.
 export async function autoRegister(key, value) {
   const name = (value || "").trim();
-  if (!name || listHas(key, name)) return;
+  if (!name || LISTS[key].off || listHas(key, name)) return;
   try { await api("POST", `/api/lists/${key}`, { name }); await loadList(key); }
   catch (err) { /* duplicate / race - ignore */ }
 }
@@ -223,4 +278,16 @@ export function initListPanels() {
       if (del) deleteListItem(del.dataset.listDel, del.dataset.id);
     });
   });
+  // The switch and Clear of each System Environment list (drawn by renderListTools).
+  const env = $("env-lists-panel");
+  if (env) {
+    env.addEventListener("change", (e) => {
+      const sw = e.target.closest("[data-list-switch]");
+      if (sw) switchList(sw.dataset.listSwitch, sw.checked);
+    });
+    env.addEventListener("click", (e) => {
+      const clear = e.target.closest("[data-list-clear]");
+      if (clear) clearList(clear.dataset.listClear);
+    });
+  }
 }

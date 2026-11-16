@@ -20,7 +20,7 @@ OFFICE_SETTING_KEYS = [
     "d365_case_origin", "d365_case_extra", "d365_customer_mode", "d365_note_html",
     "llm_provider", "llm_model", "llm_api_key", "transfer_url", "required_rules",
     "software_devices", "sheet_sources", "update_url", "auto_update", "report_rules",
-    "polish_prompt",
+    "polish_prompt", "lists_off",
 ]
 REV_SETTING = "office_rev"
 

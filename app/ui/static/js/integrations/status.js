@@ -3,7 +3,9 @@
    same dot and words. `live` decides the sidebar: only what is set up and
    switched on appears there, so a PC that uses none of them shows nothing. */
 
+import { api } from "../core/api.js";
 import { $, escapeHtml } from "../core/dom.js";
+import { showToast } from "../core/ui.js";
 import { featureOn, featuresLoaded } from "../features.js";
 import { callWatch } from "./callwatch.js";
 import { d365State } from "./d365.js";
@@ -29,9 +31,10 @@ function integrationStatus(key) {
     if (st === "starting") return { state: "busy", text: "Starting the window reader…", short: "Starting", live: true };
     if (st === "error") return { state: "warn", text: "The window reader stopped - open for details", short: "Stopped", live: true };
     const n = w.windows || 0;
-    return n
-      ? { state: "ok", text: `Listening - reading ${n} MAX window${n === 1 ? "" : "s"}`, short: "Listening", live: true }
-      : { state: "warn", text: "Running, but no MAX window is open", short: "No window", live: true };
+    if (n) return { state: "ok", text: `Listening - reading ${n} MAX window${n === 1 ? "" : "s"}`, short: "Listening", live: true };
+    // No MAX to read: the sidebar offers to open it right there.
+    return { state: "warn", text: "Running, but no MAX window is open", short: "No window", live: true,
+             action: "open-max" };
   }
   if (key === "d365") {
     const d = d365State || {};
@@ -80,12 +83,35 @@ function renderConnections() {
   box.classList.toggle("hidden", !rows.length);
   // Rebuilt only when something changed, so a status poll never drops the
   // hover or keyboard focus on a row.
-  const sig = JSON.stringify(rows.map((r) => [r.key, r.st.state, r.st.text]));
+  const sig = JSON.stringify(rows.map((r) => [r.key, r.st.state, r.st.text, r.st.action || ""]));
   if (list.dataset.sig === sig) return;
   list.dataset.sig = sig;
-  list.innerHTML = rows.map((r) =>
-    `<button type="button" class="conn-item" data-open-drawer="${r.key}" data-state="${r.st.state}"` +
-    ` title="${escapeHtml(`${r.name}: ${r.st.text}`)}">` +
-    `<span class="dot"></span><span class="conn-name">${escapeHtml(r.name)}</span>` +
-    `<span class="conn-state">${escapeHtml(r.st.short)}</span></button>`).join("");
+  list.innerHTML = rows.map((r) => {
+    const row = `<button type="button" class="conn-item" data-open-drawer="${r.key}" data-state="${r.st.state}"` +
+      ` title="${escapeHtml(`${r.name}: ${r.st.text}`)}">` +
+      `<span class="dot"></span><span class="conn-name">${escapeHtml(r.name)}</span>` +
+      (r.st.action ? "" : `<span class="conn-state">${escapeHtml(r.st.short)}</span>`) + `</button>`;
+    // A row with something to do about it: the button takes the status' place.
+    return r.st.action === "open-max"
+      ? `<div class="conn-row">${row}<button type="button" class="conn-action" data-conn-action="open-max"` +
+        ` title="Open MAX in the browser TickAssist can read, even minimized">Open MAX</button></div>`
+      : row;
+  }).join("");
+  if (!list.dataset.wired) {
+    list.dataset.wired = "1";
+    list.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-conn-action]");
+      if (b && b.dataset.connAction === "open-max") openMax(b);
+    });
+  }
+}
+
+// The saved MAX address and browser; the drawer's own button sends what is typed there.
+async function openMax(button) {
+  button.disabled = true;
+  try {
+    const r = await api("POST", "/api/callwatch/open-max", {});
+    showToast(r.message || "Opening MAX\u2026", "indigo");
+  } catch (e) { showToast(e.message || "Could not open MAX", "red"); }
+  setTimeout(() => { button.disabled = false; }, 4000);
 }
