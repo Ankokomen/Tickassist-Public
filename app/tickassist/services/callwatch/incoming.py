@@ -17,11 +17,14 @@ class IncomingCalls:
         self.case_enabled = True       # off when "Case number from MAX" is switched off
 
     def publish(self, num, source, contact_type=None, matched=None, update=False,
-                case_number=None, contact_id=None):
+                case_number=None, contact_id=None, withheld=False):
+        """num is None for a caller who withheld their number (withheld=True):
+        the call still has a skill, a case number and an id."""
         with self._cond:
             self.seq += 1
-            self.event = {"seq": self.seq, "phone": format_phone(num),
-                          "digits": num, "source": source, "at": time.time(),
+            self.event = {"seq": self.seq, "phone": format_phone(num) if num else "",
+                          "digits": num or "", "withheld": bool(withheld and not num),
+                          "source": source, "at": time.time(),
                           "contact_type": contact_type, "matched": matched,
                           "case_number": case_number if self.case_enabled else None,
                           # update: same call, its type found a moment later.

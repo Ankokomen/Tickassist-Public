@@ -71,8 +71,14 @@ def one_case(lines):
     return found[0] if len(found) == 1 else None
 
 
+# What CXone puts where the number would be when the caller withheld it.
+WITHHELD_RE = re.compile(r"^(anonymous|restricted|private(\s+(number|caller))?|withheld|blocked)$", re.IGNORECASE)
+
+
 def parse_call_url(text):
-    """{contact_id, ani, case, name} from a call-page address, or None."""
+    """{contact_id, ani, withheld, case, name} from a call-page address, or
+    None. `ani` is None when the address carries no usable number; `withheld`
+    says that this is because the caller withheld it ("ani=anonymous")."""
     m = re.search(r"transfer_pop2[^?\s]*\?(\S+)", text or "")
     if not m:
         return None
@@ -83,5 +89,6 @@ def parse_call_url(text):
     cid = one("contactId")
     if not re.match(r"^\d{1,32}$", cid):
         return None
-    return {"contact_id": cid, "ani": normalize_phone(one("ani")),
+    ani = normalize_phone(one("ani"))
+    return {"contact_id": cid, "ani": ani, "withheld": not ani and bool(WITHHELD_RE.match(one("ani"))),
             "case": one("caseNumber"), "name": one("contactName")}

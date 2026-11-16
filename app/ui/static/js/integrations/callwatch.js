@@ -23,6 +23,9 @@ import { showCallCard, updateCallCard } from "../theme/lcars-callcard.js";
 // a call ringing in must never overwrite the note still being written.
 let incomingSeq = null;
 export let incomingPending = null; // { phone, digits, contactType } offered but not yet used
+// A call whose number the caller withheld: nothing to fill, so it is said
+// under Phone Number until a number is typed. { contactType }
+let withheldCall = null;
 // The number this page itself put in Phone Number, so a caller type that MAX
 // draws a moment after the number can still be applied to the same call -
 // and never to a number the user typed.
@@ -43,6 +46,7 @@ const DEFAULT_CONTACT_TYPE = "End User";
 
 // The form was cleared: nothing on it came from a call any more.
 export function resetIncomingState() {
+  withheldCall = null;
   incomingFilledDigits = "";
   incomingTypeFromSkill = false;
   knownCallerFill = null;
@@ -143,6 +147,17 @@ function renderIncomingNotice() {
   const p = incomingPending;
   if (!p || getVal("phone").replace(/\D/g, "").endsWith(p.digits)) {
     incomingPending = null;
+    if (withheldCall && !getVal("phone")) {
+      el.innerHTML =
+        `<span class="rc-text">Incoming call: <span class="rc-name">caller ID withheld</span>` +
+        (withheldCall.contactType ? ` <span class="rc-meta">(${escapeHtml(withheldCall.contactType)})</span>` : "") +
+        `</span>` +
+        `<button type="button" class="rc-close" data-incoming-dismiss aria-label="Dismiss" title="Dismiss">` +
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+      el.classList.remove("hidden");
+      return;
+    }
+    withheldCall = null;
     el.classList.add("hidden");
     el.innerHTML = "";
     return;
@@ -219,8 +234,36 @@ export function takePendingIncoming() {
   }
 }
 
+// A call from someone who withheld their number. There is nothing to put in
+// Phone Number, but the call still has a skill, maybe a case number, and an
+// id for Transfer call. With no number to tie it to, only a note that has no
+// number yet (and is not a saved ticket) is taken to be this call's.
+function handleWithheld(ev) {
+  noteTransferCall(ev);
+  if (!featureOn("caller_type")) ev = { ...ev, contact_type: null };
+  if (!featureOn("case_from_max")) ev = { ...ev, case_number: null };
+  let type = null, c = null;
+  if (!editing && !getVal("phone")) {
+    if (ev.contact_type && !contactTypePicked) {
+      type = applyIncomingContactType(ev.contact_type);
+      if (type) incomingTypeFromSkill = true;
+    }
+    if (ev.case_number) c = applyIncomingCase(ev.case_number);
+    withheldCall = { contactType: type || (withheldCall && withheldCall.contactType) || null };
+    renderIncomingNotice();
+  }
+  if (ev.update) {      // the skill or the case MAX showed a moment later
+    if (type) showToast(`Contact Type set to ${type} from MAX`, "indigo");
+    if (c) showToast(`Case ID set to ${c} from MAX`, "indigo");
+    return;
+  }
+  showToast(`Incoming call - caller ID withheld${withType(type)}${withCase(c)}. Ask the caller for their number.`, "indigo");
+}
+
 function handleIncoming(ev) {
-  if (!ev || !ev.digits || !featureOn("calls")) return;
+  if (!ev || !featureOn("calls")) return;
+  if (ev.withheld) { handleWithheld(ev); return; }
+  if (!ev.digits) return;
   // The Settings > Test call: report that it arrived, fill nothing.
   if (ev.source === "test") {
     if (callTestWaiter) callTestWaiter(ev);
@@ -299,10 +342,11 @@ export async function pollIncoming() {
 
 export function initIncomingCalls() {
   on("incoming-call", "click", (e) => {
-    if (!incomingPending) return;
+    if (!incomingPending && !withheldCall) return;
     if (e.target.closest("[data-incoming-use]")) useIncomingPending();
     else if (e.target.closest("[data-incoming-dismiss]")) {
       incomingPending = null;
+      withheldCall = null;
       renderIncomingNotice();
     }
   });
@@ -349,6 +393,11 @@ export function renderCallWatchStatus(w) {
     text += ` Watching: ${w.titles.map((t) => `"${t}"`).join(", ")}.`;
   }
   const lc = w.last_call;
+  if (lc && lc.withheld) {
+    text += lc.contact_type
+      ? ` Last call: caller ID withheld, Contact Type ${lc.contact_type}, from "${lc.matched}".`
+      : " Last call: caller ID withheld.";
+  }
   if (lc && lc.phone) {
     text += lc.contact_type
       ? ` Last call ${lc.phone}: Contact Type ${lc.contact_type}, from "${lc.matched}".`

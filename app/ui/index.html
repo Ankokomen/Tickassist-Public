@@ -918,36 +918,37 @@
       <button class="icon-btn" data-drawer-close title="Close (Esc)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="drawer-body" data-no-dirty-except="tr-url">
-      <div id="tr-main">
-        <div class="tr-meta">
-          <div><span class="tr-k">Caller ID (ANI)</span><span class="tr-v" id="tr-ani">--</span></div>
-          <div><span class="tr-k">Active call</span><span class="tr-v" id="tr-call">None captured</span></div>
-          <div><span class="tr-k">Contact name</span><span class="tr-v" id="tr-contact">--</span></div>
-          <div><span class="tr-k">Case number</span><span class="tr-v" id="tr-case">--</span></div>
+      <div id="tr-main" class="tr-main">
+        <!-- What is about to be transferred: read off the note and the call. -->
+        <div class="tr-summary">
+          <div class="tr-meta">
+            <div><span class="tr-k">Caller ID (ANI)</span><span class="tr-v" id="tr-ani">--</span></div>
+            <div><span class="tr-k">Active call</span><span class="tr-v" id="tr-call">None captured</span></div>
+            <div><span class="tr-k">Contact name</span><span class="tr-v" id="tr-contact">--</span></div>
+            <div><span class="tr-k">Case number</span><span class="tr-v" id="tr-case">--</span></div>
+          </div>
+          <p class="tr-note">Contact name and case number come from the Note Generator
+            (Contact Name and Case ID), so type them there. The case must be CAS plus 7 digits.</p>
         </div>
-        <p class="field-help" id="tr-warn" hidden></p>
+        <p class="tr-warn" id="tr-warn" role="status" hidden></p>
         <div class="tr-error" id="tr-error" role="alert" hidden>
           <strong>Transfer failed</strong>
           <p id="tr-error-text"></p>
           <button type="button" class="btn small" id="btn-tr-error-close">Dismiss</button>
         </div>
-        <p class="field-help">Contact name and case number come from the Note Generator
-          (Contact Name and Case ID), so type them there. The case must be CAS plus 7 digits.</p>
-        <div class="stack">
-          <div>
-            <label class="label" for="tr-equip">Equipment / Category</label>
-            <select class="select" id="tr-equip" data-no-dirty><option value="">-- Select Equipment / Category --</option></select>
-            <div class="field-help" id="tr-guess" hidden></div>
-          </div>
-          <div>
-            <label class="label">Destination queues</label>
-            <div class="field-help" id="tr-prompt">Select an equipment type to list its queues.</div>
-            <div class="tr-queues" id="tr-queues"></div>
-            <div class="btn-row">
-              <button type="button" class="btn small" id="btn-tr-page"
-                title="Open the company's Call Triage page for this call in your browser, filled in; pick the queue there and it transfers from your browser, as it does inside MAX">Open the transfer page in my browser instead</button>
-            </div>
-          </div>
+        <div class="tr-field">
+          <label class="label" for="tr-equip">Equipment / Category</label>
+          <select class="select" id="tr-equip" data-no-dirty><option value="">-- Select Equipment / Category --</option></select>
+          <div class="field-help" id="tr-guess" hidden></div>
+        </div>
+        <div class="tr-field">
+          <span class="label">Destination queues</span>
+          <div class="tr-prompt" id="tr-prompt">Select an equipment type to list its queues.</div>
+          <div class="tr-queues" id="tr-queues"></div>
+        </div>
+        <div class="tr-alt">
+          <button type="button" class="btn small" id="btn-tr-page"
+            title="Open the company's Call Triage page for this call in your browser, filled in; pick the queue there and it transfers from your browser, as it does inside MAX">Open the transfer page in my browser instead</button>
         </div>
         <details class="tr-setup" id="tr-setup">
           <summary>Transfer setup</summary>

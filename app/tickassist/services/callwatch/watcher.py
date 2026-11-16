@@ -306,6 +306,15 @@ class CallWatcher:
             return
         self._last_contact_id = info["contact_id"]
         num = info["ani"]
+        if not num and info.get("withheld"):
+            # The caller withheld their number: the page still names the call.
+            last = self.detector.last_call
+            same = bool(last and last.get("withheld") and self.detector.clock() - last.get("at", 0) < 300)
+            if not same:
+                self.detector.note_external(None)
+            self.calls.publish(None, "address-bar", update=same, contact_id=info["contact_id"],
+                               case_number=one_case([info["case"]]) if info["case"] else None, withheld=True)
+            return
         if not num or num in self.detector.ignore:
             return
         case = one_case([info["case"]]) if info["case"] else None
@@ -392,6 +401,12 @@ class CallWatcher:
         if at and time.time() - at > 60:
             self._set(call_page_id=None, call_page_at=None, call_page_phone=None,
                       page_text=None)
+        # What MAX shows comes first: it has the skill. The call page's
+        # address, read after, then only adds the call's id to that call.
+        for ev in self.detector.feed(readable):
+            self.calls.publish(ev["phone"], ev["source"], ev.get("contact_type"),
+                               ev.get("matched"), ev.get("update", False),
+                               ev.get("case_number"), withheld=ev.get("withheld", False))
         urls = msg.get("urls") or []
         if isinstance(urls, str):
             urls = [urls]
@@ -411,7 +426,3 @@ class CallWatcher:
             line = next((ln for ln in blob.splitlines() if "transfer_pop2" in ln), "")
             self._set(page_text=line[:110])
             self._handle_url(blob)
-        for ev in self.detector.feed(readable):
-            self.calls.publish(ev["phone"], ev["source"], ev.get("contact_type"),
-                               ev.get("matched"), ev.get("update", False),
-                               ev.get("case_number"))

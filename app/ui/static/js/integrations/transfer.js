@@ -13,6 +13,8 @@ import { loadSettings, settingsCache } from "../pages/settings.js";
 // setup. A transfer moves a live caller, so it always asks first, and warns
 // when the call ID belongs to a different number than the note shows.
 export let transferCall = null;          // { contactId, digits, phone }
+// The call as the drawer names it: a caller who withheld their number has none.
+function callLabel() { return transferCall.phone || "caller ID withheld"; }
 let transferEquip = [];           // from /api/transfer/config
 let transferConfigured = false;
 // The address the Call Triage page posted to (a saved one in Settings wins).
@@ -48,10 +50,10 @@ async function loadTransferConfig() {
 
 function renderTransfer() {
   const digits = getVal("phone").replace(/\D/g, "");
-  $("tr-ani").textContent = getVal("phone") || "--";
+  $("tr-ani").textContent = getVal("phone") || (transferCall && !transferCall.phone ? "Withheld" : "--");
   const callEl = $("tr-call");
   if (transferCall) {
-    callEl.textContent = `…${transferCall.contactId.slice(-6)} (${transferCall.phone})`;
+    callEl.textContent = `…${transferCall.contactId.slice(-6)} (${callLabel()})`;
     callEl.classList.remove("bad");
   } else {
     callEl.textContent = "None captured";
@@ -65,7 +67,7 @@ function renderTransfer() {
   const warn = $("tr-warn");
   let msg = "";
   if (!transferCall) msg = "No call ID has been captured, so a transfer can't be sent. The call ID is read from the browser address bar of the CXone call page (transfer_pop2.html?contactId=…), or from a screen pop with &contactId={CONTACTID}.";
-  else if (digits && !digits.endsWith(transferCall.digits) && !transferCall.digits.endsWith(digits))
+  else if (digits && transferCall.digits && !digits.endsWith(transferCall.digits) && !transferCall.digits.endsWith(digits))
     msg = `The active call is ${transferCall.phone}, but this note's phone number is different. Check you are transferring the right call.`;
   warn.textContent = msg;
   warn.hidden = !msg;
@@ -115,7 +117,7 @@ async function runTransfer(eq, q) {
   }
   if (!transferCall) return showToast("No active call ID captured from MAX", "red");
   const ok = await confirmModal("Transfer this call?",
-    `Destination: ${q.name}\nCase: ${cas}\nContact: ${getVal("contact") || "(none entered)"}\nCall: ${transferCall.phone}`,
+    `Destination: ${q.name}\nCase: ${cas}\nContact: ${getVal("contact") || "(none entered)"}\nCall: ${callLabel()}`,
     "Transfer");
   if (!ok) return;
   $("tr-queues").querySelectorAll("button").forEach((b) => { b.disabled = true; });

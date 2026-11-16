@@ -13,6 +13,10 @@ Support" - is matched against the caller-type rules to choose Contact Type.
 If MAX draws the skill a moment after the number, a follow-up event types the
 call when it lands.
 
+A caller can withhold their number. MAX then shows "anonymous" where the
+number would be: that line appearing is the call, reported with no number
+(phone None, withheld True) but with its skill and case number as usual.
+
 MAX is not always there to be read: its tab goes to the background, its
 window is minimized, a read comes back empty. What it showed is remembered
 meanwhile, so when it is back the difference is what happened while it was
@@ -26,7 +30,7 @@ import re
 import time
 from collections import Counter
 
-from .phones import find_phones, format_phone, one_case
+from .phones import WITHHELD_RE, find_phones, format_phone, one_case
 from .rules import DEFAULT_RULES, classify, lines_for_call, parse_rules, split_lines
 
 # The same number arriving from two routes (toast + window, or a screen pop
@@ -44,6 +48,9 @@ CONTEXT_SECONDS = 8
 # the skill; the CAS + 7 digits shape is distinctive enough to allow that.
 CASE_SECONDS = 120
 
+
+# What a withheld caller is filed under, where a number would be.
+WITHHELD = "withheld"
 
 # How long a window that can't be read is remembered.
 AWAY_SECONDS = 30 * 60
@@ -98,7 +105,8 @@ class CallDetector:
 
     def _record_call(self, num, kind, context, hit, case=None):
         self.last_call = {
-            "phone": format_phone(num), "source": kind, "at": self.clock(),
+            "phone": format_phone(num) if num else "", "withheld": not num,
+            "source": kind, "at": self.clock(),
             "contact_type": hit[0] if hit else None,
             "matched": hit[1][:120] if hit else None,
             "case_number": case,
@@ -135,7 +143,8 @@ class CallDetector:
             return None
         w["type"] = w["type"] or bool(hit)
         w["case"] = w["case"] or bool(case)
-        last = self.last_call if self.last_call and self.last_call.get("phone") == format_phone(w["num"]) else None
+        shown = format_phone(w["num"]) if w["num"] else ""
+        last = self.last_call if self.last_call and self.last_call.get("phone") == shown else None
         if last is None:
             self._record_call(w["num"], kind, recent, hit, case)
         else:
@@ -145,7 +154,7 @@ class CallDetector:
                 last["case_number"] = case
         if w["type"] and w["case"]:
             del self._awaiting[key]
-        return {"phone": w["num"], "source": kind,
+        return {"phone": w["num"], "withheld": not w["num"], "source": kind,
                 "contact_type": hit[0] if hit else None,
                 "matched": hit[1] if hit else None,
                 "case_number": case, "update": True}
@@ -197,10 +206,24 @@ class CallDetector:
                 events.append(ev)
 
             new = [n for n in numbers if prev is None or n not in prev[1]]
-            if not new:
-                continue
             if returning and not call_in_progress(counts):
                 continue             # it came and went while MAX could not be read
+            if not new:
+                # No new number - but "anonymous" where one would be is a call
+                # too, from someone who withheld theirs.
+                if (any(WITHHELD_RE.match(ln) for ln in fresh)
+                        and now - self._recent.get(WITHHELD, 0) >= DEDUPE_SECONDS):
+                    self._recent[WITHHELD] = now
+                    hit, case, context = self._details(None, [ln for _, ln in recent])
+                    self._record_call(None, kind, context, hit, case)
+                    if hit and case:
+                        self._awaiting.pop(key, None)
+                    else:
+                        self._awaiting[key] = {"num": None, "at": now, "type": bool(hit), "case": bool(case)}
+                    events.append({"phone": None, "withheld": True, "source": kind,
+                                   "contact_type": hit[0] if hit else None,
+                                   "matched": hit[1] if hit else None, "case_number": case})
+                continue
             if len(new) > 1:
                 self.last_ambiguous = {"numbers": [format_phone(n) for n in new],
                                        "source": kind, "at": now}
@@ -239,5 +262,8 @@ class CallDetector:
         return events
 
     def note_external(self, num):
-        """A number arrived by another route; suppress an echo from the screen."""
-        self._recent[num] = self.clock()
+        """A call arrived by another route (num None: its number withheld);
+        suppress an echo from the screen."""
+        self._recent[num or WITHHELD] = self.clock()
+        if not num:
+            self._record_call(None, "address-bar", [], None)

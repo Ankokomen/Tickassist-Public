@@ -2560,18 +2560,39 @@ html[data-theme="lcars"] .subtab[aria-selected="true"] { background: var(--lc-or
 html[data-theme="lcars"] .subtab:focus-visible { box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--lc-ice); border-radius: 999px; }
 
 /* ---- Call transfer drawer ---------------------------------------------------- */
-.tr-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--slate-800); border-radius: 8px; }
-.tr-k { display: block; font-size: 11px; font-weight: 600; color: var(--slate-400); }
-.tr-v { display: block; font-size: 14px; font-weight: 600; color: var(--slate-100); overflow-wrap: anywhere; }
+/* One column with one rhythm: the summary of what is being transferred, any
+   warning, the two choices, then the less-used parts under a rule. */
+.tr-main { display: flex; flex-direction: column; gap: 18px; }
+.tr-summary { display: flex; flex-direction: column; gap: 8px; }
+.tr-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; padding: 14px 16px;
+  border: 1px solid var(--slate-800); border-radius: 10px; background: rgba(148, 163, 184, 0.06); }
+.tr-meta > div { min-width: 0; }
+.tr-k { display: block; margin-bottom: 3px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; color: var(--slate-500); }
+.tr-v { display: block; font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--slate-100); overflow-wrap: anywhere; }
 .tr-v.bad { color: var(--red-400); }
-#tr-warn { color: var(--amber-400); }
-.tr-queues { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.tr-q { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; width: 100%; }
-.tr-q .tr-badge { flex: none; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,0.22); }
+.tr-note { margin: 0 2px; font-size: 11.5px; line-height: 1.5; color: var(--slate-500); }
+.tr-warn { margin: 0; padding: 10px 14px; border: 1px solid rgba(251, 191, 36, 0.35); border-left-width: 3px;
+  border-radius: 8px; background: rgba(251, 191, 36, 0.08); font-size: 12.5px; line-height: 1.5;
+  color: var(--amber-400); overflow-wrap: anywhere; }
+.tr-warn[hidden] { display: none; }
+.tr-field .label { margin-bottom: 8px; }
+.tr-field .field-help { margin-top: 8px; }
+.tr-prompt { font-size: 12.5px; color: var(--slate-500); }
+.tr-prompt[hidden] { display: none; }
+.tr-queues { display: flex; flex-direction: column; gap: 10px; }
+.tr-queues:empty { display: none; }
+.tr-q { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; width: 100%;
+  padding: 11px 14px; }
+.tr-q .tr-badge { flex: none; font-size: 11px; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,0.22); }
 .tr-q:disabled { opacity: 0.5; cursor: not-allowed; }
-.tr-setup { margin-top: 18px; padding-top: 12px; border-top: 1px dashed var(--slate-800); }
-.tr-setup summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--slate-300); margin-bottom: 8px; }
-.tr-setup .btn { margin-top: 10px; }
+.tr-alt { display: flex; justify-content: flex-start; margin-top: -4px; }
+.tr-setup { padding-top: 16px; border-top: 1px dashed var(--slate-800); }
+.tr-setup summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--slate-300); }
+.tr-setup[open] summary { margin-bottom: 14px; }
+.tr-setup .field-help { margin-top: 8px; line-height: 1.5; }
+.tr-setup .btn { margin-top: 12px; }
+html[data-theme="light"] .tr-meta { background: #f8fafc; border-color: #dfe5ee; }
+html[data-theme="light"] .tr-warn { color: #92400e; background: #fffbeb; border-color: #fcd34d; }
 .tr-done { text-align: center; padding: 28px 8px; }
 .tr-done h4 { margin: 0 0 12px; font-size: 18px; color: var(--emerald-300); }
 html[data-theme="lcars"] .tr-meta { border: 0; border-left: 8px solid var(--lc-ice); border-radius: 14px 0 0 14px; background: var(--slate-850); }
@@ -2580,11 +2601,11 @@ html[data-theme="lcars"] .tr-q { height: 42px; border-radius: 0 999px 999px 0; }
 html[data-theme="lcars"] .tr-done h4 { font-family: var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--lc-ice); }
 
 /* Transfer failure: stays on screen until dismissed. */
-.tr-error { margin: 10px 0; padding: 10px 12px; border: 1px solid #e5484d;
+.tr-error { margin: 0; padding: 12px 14px; border: 1px solid #e5484d;
   border-left-width: 4px; border-radius: 8px; background: rgba(229, 72, 77, .12);
   color: inherit; user-select: text; }
 .tr-error strong { color: #ff6b6f; }
-.tr-error p { margin: 6px 0 8px; font-size: 13px; line-height: 1.4;
+.tr-error p { margin: 6px 0 10px; font-size: 13px; line-height: 1.45;
   overflow-wrap: anywhere; user-select: text; }
 
 /* ---- Required fields ---------------------------------------------------------- */
