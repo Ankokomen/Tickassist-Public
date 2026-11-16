@@ -29,6 +29,7 @@ class Calls:
         self.watcher = CallWatcher(self.incoming)
         if data_dir:
             self.watcher.own_profile = profile_dir(data_dir)
+            self.watcher.use_data_dir(data_dir)
 
     def configure(self, settings, features):
         """Apply settings and feature switches. Switched off: no reading MAX at

@@ -20,10 +20,18 @@ brings MAX's own window on screen and closes the page behind it. Not signed
 in, nothing happens there for a few seconds: then the window is brought on
 screen to sign in, and the same follows once that is done.
 
+MAX's window gets an icon: MAX's page has none of its own, so its window
+shows the browser's blank globe, which makes it hard to find on the taskbar.
+TickAssist gives the page one - its own drawing, a blue square with an M
+(app/ui/static/max-icon.png; not the vendor's logo, which is not ours to
+ship) - and the window takes it from there. A picture saved in the data
+folder as max-icon.png (or .ico, .jpg) is used instead on that PC.
+
 The port listens on 127.0.0.1 only. Standard library only: the few WebSocket
 frames needed are in websocket.py.
 """
 
+import base64
 import json
 import os
 import re
@@ -151,6 +159,49 @@ def profile_dir(data_dir):
     return os.path.join(data_dir, "max-browser-profile")
 
 
+# The picture for MAX's window: the first of these found in the data folder,
+# or else the one that comes with the program.
+ICON_FILES = {"max-icon.png": "image/png", "max-icon.ico": "image/x-icon", "max-icon.jpg": "image/jpeg"}
+DEFAULT_ICON = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                            "ui", "static", "max-icon.png")
+ICON_MAX_BYTES = 512 * 1024
+# Gives the page its icon. The picture is handed over once (it is kept in the
+# page as __tickassistIcon); after that the short form, with null, only checks
+# that it is still the page's one icon and puts it back if MAX changed it.
+# Answers "ok", "set", or "need" when the page has not been given it yet.
+_ICON_JS = r"""(function (given) {
+  if (given) window.__tickassistIcon = given;
+  var icon = window.__tickassistIcon;
+  if (!icon) return 'need';
+  var all = document.querySelectorAll('link[rel~="icon"]');
+  if (all.length === 1 && all[0].hasAttribute('data-tickassist') && all[0].href === icon) return 'ok';
+  for (var i = 0; i < all.length; i++) all[i].remove();
+  var link = document.createElement('link');
+  link.rel = 'icon';
+  link.setAttribute('data-tickassist', '');
+  link.href = icon;
+  document.head.appendChild(link);
+  return 'set';
+})(%s)"""
+
+
+def icon_url(data_dir, default=None):
+    """The picture as an address a page can use ("data:..."): this PC's own
+    from the data folder if it has one, else `default` (a .png). "" when
+    there is neither, or it is too big to be an icon."""
+    places = [(os.path.join(data_dir, name), mime) for name, mime in ICON_FILES.items()] if data_dir else []
+    if default:
+        places.append((default, "image/png"))
+    for path, mime in places:
+        try:
+            if 0 < os.path.getsize(path) <= ICON_MAX_BYTES:
+                with open(path, "rb") as fh:
+                    return "data:%s;base64,%s" % (mime, base64.b64encode(fh.read()).decode("ascii"))
+        except OSError:
+            continue
+    return ""
+
+
 def reachable(port=PORT):
     try:
         with urllib.request.urlopen("http://127.0.0.1:%d/json/version" % port, timeout=1.5) as r:
@@ -258,6 +309,7 @@ class CdpReader:
         self._up_since = None      # when this browser session was first seen
         self._placed = set()       # MAX tabs whose window has been looked at
         self._revealed = False     # the sign-in window was brought on screen
+        self.data_dir = None       # where max-icon.png is looked for (Calls sets it)
         self.clock = time.monotonic
 
     def _get_json(self, path):
@@ -298,6 +350,8 @@ class CdpReader:
             if MAX_APP.match(addr) and tid not in self._placed:
                 self._placed.add(tid)           # MAX opened from a hidden page is hidden too
                 self._show(tid, MAX_AT)
+            if MAX_APP.match(addr):
+                self._keep_icon(tid)
             titles.append(title)
             sources.append({"k": "window", "id": "cdp:" + tid, "title": title or addr,
                             "text": text, "n": len([ln for ln in text.splitlines() if ln.strip()]),
@@ -345,6 +399,20 @@ class CdpReader:
                 pass
         except (OSError, ValueError):
             pass                      # closed already, by you
+
+    def _keep_icon(self, tid):
+        """MAX's window wears TickAssist's icon for it, or this PC's own."""
+        tab = self._tabs.get(tid)
+        if not tab:
+            return
+        try:
+            if tab.evaluate(_ICON_JS % "null") != "need":
+                return
+            url = icon_url(self.data_dir, DEFAULT_ICON)
+            if url:
+                tab.evaluate(_ICON_JS % json.dumps(url))
+        except (OSError, WsError, ValueError):
+            pass
 
     def _show(self, tid, bounds):
         tab = self._tabs.get(tid)

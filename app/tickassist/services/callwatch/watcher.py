@@ -179,6 +179,10 @@ class CallWatcher:
     def want_max(self):
         self._cdp.want_max()
 
+    def use_data_dir(self, data_dir):
+        """Where the browser reader finds the picture for MAX's window."""
+        self._cdp.data_dir = data_dir
+
     def snapshot_status(self):
         s = dict(self.status)
         s["supported"] = self.SUPPORTED
