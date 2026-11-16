@@ -8,7 +8,6 @@ from ...domain.required import clean_rules
 from ...domain.settings import flag
 from ...services import llm, serverinfo, sheets, transfer
 from ...services.callwatch.browser import DEFAULT_MAX_URL
-from ...services.update import check_address
 from ..http import HttpError
 from ..router import Routes
 
@@ -19,7 +18,7 @@ routes = Routes()
 def page_settings(app):
     """Everything the Settings page shows. The AI key is returned so its field
     can be edited: a single-user tool bound to localhost. The D365 refresh
-    token never is."""
+    token and the update access token never are."""
     s = app.settings.all()
     return {
         "llm_provider": s["llm_provider"],
@@ -38,6 +37,7 @@ def page_settings(app):
         "sheet_url": s["sheet_url"],
         "sheet_sources": sheets.sources(s),
         "update_url": app.updates.url(),
+        "update_token_set": bool(app.updates.token()),
         "auto_update": flag(s["auto_update"]),
         "report_rules": (s["report_rules"] or "").strip() or serverinfo.DEFAULT_RULES,
         "polish_prompt": (s["polish_prompt"] or "").strip() or llm.DEFAULT_PROMPT.strip(),
@@ -112,6 +112,13 @@ def _sheet_sources(v):
     return json.dumps(sheets.clean_sources(v), separators=(",", ":"))
 
 
+def _token(v):
+    token = str(v).strip()
+    if re.search(r"\s", token) or len(token) > 400:
+        raise ValueError("That doesn't look like a GitHub access token.")
+    return token
+
+
 def _polish_prompt(v):
     # Saving the default text stores nothing, so later improvements to the
     # default still arrive.
@@ -139,7 +146,7 @@ FORM = {
     "sheet_overwrite": _flag,
     "sheet_sources": _sheet_sources,
     "sheet_check": _flag,
-    "update_url": check_address,
+    "update_token": _token,
     "auto_update": _flag,
     "report_rules": lambda v: str(v)[:4000],
     "d365_org_url": _org_url,

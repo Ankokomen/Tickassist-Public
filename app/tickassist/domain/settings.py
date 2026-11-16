@@ -47,7 +47,8 @@ DEFAULTS = {
     "sheet_overwrite": "0",
     "sheet_check": "1",           # outline values that differ from the sheet row
     # Updates (services/update).
-    "update_url": "",             # empty = update.DEFAULT_URL
+    "update_url": "",             # office file only (PCs could set it before 6.6)
+    "update_token": "",           # GitHub access token, for a private repository
     "auto_update": "1",
     # Server-report import rules; empty = serverinfo.DEFAULT_RULES.
     "report_rules": "",

@@ -18,8 +18,11 @@ copy replaces the program and keeps your settings, lists and macros.
 ## Update
 
 TickAssist checks for a newer version whenever it opens and offers it in the
-top bar (Settings > Updates). A copy older than 6.4 has to be moved over once
-by running the installer above.
+top bar (Settings > Updates).
+
+A copy older than 6.4 has to be moved over once: set Settings > Updates to
+`https://github.com/Ankokomen/Tickassist-Public` and press Check (it installs
+6.4, which updates itself from there on), or run the installer above.
 
 ## More
 

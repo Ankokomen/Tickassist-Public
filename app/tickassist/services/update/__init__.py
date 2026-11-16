@@ -12,40 +12,39 @@ import os
 import subprocess
 import sys
 import threading
+import time
 
 from . import installer, sources
-from .common import UpdateError, parse_version  # noqa: F401  (UpdateError: callers catch it from here)
+from .common import UpdateError, is_newer, parse_version  # noqa: F401  (UpdateError: callers catch it from here)
 
-DEFAULT_URL = "https://github.com/Ankokomen/Tickassist-Public"
-# Earlier versions saved these addresses (old defaults); they count as "not set".
-RETIRED_URLS = ("https://github.com/ankokomen/tickassist-updates",
-                "https://github.com/ankokomen/tickassist")
+PUBLIC_URL = "https://github.com/Ankokomen/Tickassist-Public"
 # A slow or missing network never holds start-up longer than this.
 STARTUP_WAIT_SECONDS = 10
+# The page asks on every load and start-up asks too; GitHub allows a network
+# 60 unsigned questions an hour. An answer this fresh is reused, except by
+# the Check for updates button.
+CHECK_KEEP_SECONDS = 300
 
 
 class Busy(Exception):
     """An update is already installed and waiting for a restart (HTTP 409)."""
 
 
-def check_address(value):
-    """A typed update address (a GitHub repository), or ValueError. Empty
-    means "use the default"."""
-    if value is None:
-        return None
-    value = str(value).strip()
-    if value:
-        try:
-            sources.repository(value)
-        except UpdateError as err:
-            raise ValueError(str(err))
-    return value
+def _same(url):
+    return url.strip().rstrip("/").lower().removesuffix(".git")
 
 
 class Updates:
+    product = "TickAssist"       # names the update zip: <product>-<version>-update.zip
+    default_url = PUBLIC_URL
+    # Earlier versions saved these addresses (old defaults); they count as "not set".
+    retired_urls = ("https://github.com/ankokomen/tickassist-updates",
+                    "https://github.com/ankokomen/tickassist")
+
     def __init__(self, config, settings):
         self.config = config
         self.settings = settings
+        self._checked = None     # (when, address, token, answer)
         # The version this process started as. If the VERSION file says
         # otherwise, an update was installed while running: the new pages are
         # served by the old program until a restart.
@@ -60,18 +59,39 @@ class Updates:
         return self.current() != self.started_version
 
     def url(self):
-        value = (self.settings.get("update_url") or "").strip()
-        if value.rstrip("/").lower().removesuffix(".git") in RETIRED_URLS:
+        """Where this copy updates from: its own repository, unless the office
+        file (app/owner.json) names another. It is not a PC's to change: an
+        address a PC saved before 6.6 is ignored."""
+        value = (self.settings.office.get("update_url") or "").strip()
+        try:
+            sources.repository(value)
+        except UpdateError:
             value = ""
-        return value or DEFAULT_URL
+        if _same(value) in [_same(u) for u in self.retired_urls]:
+            value = ""
+        return value or self.default_url
+
+    def token(self):
+        """The access token for a private update repository; usually none."""
+        return (self.settings.get("update_token") or "").strip()
 
     def _ensure_not_pending(self, message):
         if self.restart_needed():
             raise Busy(message)
 
     # ---- what the Updates panel does --------------------------------------------
-    def check(self):
-        return sources.check(self.url(), self.current())
+    def check(self, fresh=True):
+        """The newest published version. fresh=False accepts an answer from
+        the last few minutes."""
+        url, token, now = self.url(), self.token(), time.monotonic()
+        kept = self._checked
+        if not fresh and kept and kept[1:3] == (url, token) and now - kept[0] < CHECK_KEEP_SECONDS:
+            info = dict(kept[3], current=self.current())
+            info["newer"] = is_newer(info["latest"], info["current"])
+            return info
+        info = sources.check(url, self.current(), self.product, token)
+        self._checked = (now, url, token, dict(info))
+        return info
 
     def install_latest(self):
         self._ensure_not_pending("An update is already installed - restart TickAssist to use it.")
@@ -81,7 +101,7 @@ class Updates:
         return self._apply(info)
 
     def versions(self):
-        return sources.versions(self.url())
+        return sources.versions(self.url(), self.product, self.token())
 
     def install_version(self, want):
         """Install a listed version, newer or older. Going back also turns off
@@ -102,7 +122,7 @@ class Updates:
 
     def _apply(self, info, allow_older=False):
         return installer.apply(info, self.config.root_dir, self.config.data_dir, self.current(),
-                               allow_older=allow_older)
+                               allow_older=allow_older, extension=self.config.dev, token=self.token())
 
     # ---- at start-up -----------------------------------------------------------
     def auto_update_wanted(self):

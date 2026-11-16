@@ -21,7 +21,9 @@ def _without_zip_url(info):
 
 @routes.get("/api/update/check")
 def check(app, req):
-    info = _without_zip_url(app.updates.check())
+    # The page asks whenever it loads; only the button (fresh=1) insists on
+    # asking GitHub again.
+    info = _without_zip_url(app.updates.check(fresh=req.arg("fresh") == "1"))
     info["restart_needed"] = app.updates.restart_needed()
     info["auto_message"] = app.updates.auto_message
     return info

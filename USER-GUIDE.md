@@ -382,18 +382,22 @@ that folder. Scripted installs: `Install-TickAssist.bat -Quiet` (add
 self-contained copy in that folder instead, with no shortcuts, which keeps
 its data in its own `data` folder.
 
-**Updating a PC**: Settings > General > Updates. The update address is the
-GitHub repository whose Releases TickAssist installs from (it starts out set);
-TickAssist checks it whenever it opens and shows an *Update x.y available* button
+**Updating a PC**: Settings > General > Updates. TickAssist installs from the
+Releases of its own GitHub repository (the address is built in, not a setting
+on the PC); it checks whenever it opens and shows an *Update x.y available* button
 in the top bar. One click downloads the update, checks it against the SHA-256
 GitHub publishes for it, replaces the program files (never the data,
 `app/owner.json` or the bundled Python), keeps the previous version in
 `<data>/updates/backup`, restarts itself and reloads the page. If anything
-fails halfway, the old files are put back. The office settings can carry the
-address to every PC (`update_url`).
+fails halfway, the old files are put back. *Install another version* goes
+back to an earlier published version (6.4 or later). Only the office file
+can point every PC at another repository (`update_url` in `app/owner.json`).
 
-A copy from before 6.4 doesn't find these updates by itself: run
-`Install-TickAssist.bat` on that PC once. Its settings, lists and macros stay.
+A copy from before 6.4 doesn't find these updates by itself. On that PC,
+either set Settings > Updates to
+`https://github.com/Ankokomen/Tickassist-Public` and press Check (its old
+update system then installs 6.4, which updates itself from there on), or run
+`Install-TickAssist.bat` once. Its settings, lists and macros stay either way.
 
 ## Several Google Sheets
 

@@ -2,7 +2,6 @@
    optional dev package sets them; without it each one is simply absent.
 
      callerHistory(query)   show the earlier tickets for a caller
-     installUpdate(info)    take over installing a newer version
 */
 
 const hooks = {};

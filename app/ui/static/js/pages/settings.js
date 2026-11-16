@@ -10,7 +10,7 @@ import { loadD365Settings, setD365State } from "../integrations/d365.js";
 import { drawerDirty } from "../integrations/drawers.js";
 import { renderSheetSources } from "../integrations/sheets.js";
 import { renderIntegrations } from "../integrations/status.js";
-import { checkUpdatesOnce } from "./updates.js";
+import { fillUpdateSettings } from "./updates.js";
 
 const MODEL_HINTS = {
   gemini: "Suggested: gemini-2.5-flash. Get a key at aistudio.google.com.",
@@ -53,11 +53,7 @@ export async function loadSettings() {
   try {
     const s = await api("GET", "/api/settings");
     settingsCache = s;
-    const updUrl = $("upd-url");
-    if (updUrl && document.activeElement !== updUrl) updUrl.value = s.update_url || "";
-    if ($("upd-auto")) $("upd-auto").checked = s.auto_update !== false;
-    if ($("upd-version")) $("upd-version").textContent = `Version ${s.version || ""}`;
-    checkUpdatesOnce(s.update_url);
+    fillUpdateSettings(s);
     if ($("rpt-rules") && document.activeElement !== $("rpt-rules")) $("rpt-rules").value = s.report_rules || "";
     if ($("llm-prompt") && document.activeElement !== $("llm-prompt")) $("llm-prompt").value = s.polish_prompt || "";
     $("llm-provider").value = s.llm_provider || "gemini";

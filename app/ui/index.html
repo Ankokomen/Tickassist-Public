@@ -684,37 +684,46 @@
             </div>
           </div>
 
-          <!-- Updates  -->
+          <!-- Updates: what is installed and what is published, one button to
+               install, and the rarely-needed parts folded away. -->
           <div class="panel" id="update-panel">
             <div class="panel-head"><h2 class="panel-title">Updates</h2><span class="topbar-meta" id="upd-version"></span></div>
-            <p class="field-help" id="upd-help">The GitHub repository whose Releases TickAssist updates
-              from. TickAssist checks it when it opens; installing an update keeps your
-              settings, lists and macros, then restarts.</p>
-            <!-- slot:updates -->
             <div class="stack">
-              <input class="input" type="text" id="upd-url" autocomplete="off" spellcheck="false"
-                     placeholder="https://github.com/Ankokomen/Tickassist-Public">
+              <div class="upd-card" id="upd-card" data-state="checking">
+                <span class="upd-dot" aria-hidden="true"></span>
+                <div class="upd-text" role="status">
+                  <div class="upd-headline" id="upd-headline">Checking for updates&hellip;</div>
+                  <div class="upd-detail" id="upd-detail"></div>
+                </div>
+                <div class="upd-actions">
+                  <button type="button" class="btn green small hidden" id="btn-upd-install">Install and restart</button>
+                  <button type="button" class="btn small" id="btn-upd-check">Check now</button>
+                </div>
+              </div>
+              <details class="upd-notes hidden" id="upd-notes">
+                <summary>What&rsquo;s new in <span id="upd-notes-version"></span></summary>
+                <div class="upd-notes-body" id="upd-notes-body"></div>
+              </details>
               <label class="switch-row" id="upd-auto-row">
                 <span class="switch-text">
-                  <span class="switch-label">Install updates automatically when TickAssist starts</span>
-                  <span class="switch-desc">TickAssist checks for a newer version, installs it and restarts itself before it opens.</span>
+                  <span class="switch-label">Install updates automatically</span>
+                  <span class="switch-desc">When TickAssist starts it installs a newer version and restarts itself before it opens. Your settings, lists and macros are kept.</span>
                 </span>
                 <input type="checkbox" class="switch" id="upd-auto">
               </label>
-              <div class="btn-row">
-                <button type="button" class="btn small" id="btn-upd-save">Save address</button>
-                <button type="button" class="btn small" id="btn-upd-check">Check for updates</button>
-                <button type="button" class="btn green small hidden" id="btn-upd-install">Install update and restart</button>
+              <div class="upd-folds">
+                <details class="fold" id="upd-versions-fold">
+                  <summary>Install another version</summary>
+                  <p class="field-help">Go back to an earlier version if an update causes trouble. Going back turns
+                    automatic updates off, so TickAssist stays on the version you picked.</p>
+                  <div class="upd-row">
+                    <select class="select" id="upd-versions" aria-label="Version to install" disabled><option value="">Loading versions&hellip;</option></select>
+                    <button type="button" class="btn small" id="btn-upd-version" disabled>Install and restart</button>
+                  </div>
+                  <div class="field-help hidden" id="upd-versions-msg" role="status"></div>
+                </details>
+                <!-- slot:updates -->
               </div>
-              <div class="cw-status hidden" id="upd-status" role="status"></div>
-              <div id="upd-versions-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-                <select class="select" id="upd-versions" aria-label="Version to install"><option value="">Other versions...</option></select>
-                <button type="button" class="btn small" id="btn-upd-load">Show versions</button>
-                <button type="button" class="btn small hidden" id="btn-upd-version">Install this version and restart</button>
-              </div>
-              <div class="field-help" id="upd-versions-help">Go back to an earlier version if an update causes trouble. Going back turns
-                off "update when TickAssist starts", so it stays on the version you picked. Your settings, lists and
-                macros are kept.</div>
             </div>
           </div>
 

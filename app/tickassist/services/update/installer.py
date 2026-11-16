@@ -2,7 +2,12 @@
 put the previous version back if anything fails halfway.
 
 The data folder, the office settings (app/owner.json) and the bundled Python
-runtime are never touched, so settings, lists and macros survive. The previous version is kept in <data>/updates/backup.
+runtime are never touched, so settings, lists and macros survive. The previous
+version is kept in <data>/updates/backup.
+
+A copy only ever installs an update of its own kind: one that carries the
+optional package exactly when this copy has it. Anything else would take
+that package away, or add it where it doesn't belong.
 """
 
 import hashlib
@@ -21,11 +26,14 @@ PROTECTED = ("data/", "runtime/", "app/owner.json", "installed.txt", "app/owner-
 # Every TickAssist update zip holds these; copies already in the field refuse
 # a zip without app/server.py, so it stays the entry point.
 REQUIRED = ("VERSION", "app/server.py")
+# The optional package's own file (config._has_dev looks for the same one).
+EXTENSION = "app/tickassist/dev/__init__.py"
 
 
-def _download(zip_url, sha256):
+def _download(zip_url, sha256, token=""):
     buf = io.BytesIO()
-    with open_url(zip_url) as resp:
+    # GitHub's API hands a release file over only when asked for it as a file.
+    with open_url(zip_url, token, accept="application/octet-stream" if token else "") as resp:
         while True:
             chunk = resp.read(256 * 1024)
             if not chunk:
@@ -92,16 +100,23 @@ def _restore(root, backup):
             shutil.copy2(src, dst)
 
 
-def apply(info, root, data_dir, current, allow_older=False):
+def apply(info, root, data_dir, current, allow_older=False, extension=False, token=""):
     """Download and install the update described by check(). Returns
-    {"old", "new", "files"}. The running program must be restarted afterwards."""
-    data = _download(info["zip_url"], info.get("sha256") or "")
+    {"old", "new", "files"}. The running program must be restarted afterwards.
+    `extension` says this copy has the optional package; `token` is the
+    access token the address needs, if any."""
+    if not info.get("zip_url"):
+        raise UpdateError("That release has no update file for this copy to install.")
+    data = _download(info["zip_url"], info.get("sha256") or "", token)
     try:
         zf = zipfile.ZipFile(io.BytesIO(data))
     except zipfile.BadZipFile:
         raise UpdateError("The downloaded update isn't a valid zip file.")
     with zf:
         payload = _payload(zf)
+        if (EXTENSION in payload) != bool(extension):
+            raise UpdateError("That update is for a different edition of TickAssist - not installing it. "
+                              "Check the update address in Settings > Updates.")
         new_version = (zf.read(payload["VERSION"]).decode("utf-8-sig").strip().lstrip("vV")
                        if "VERSION" in payload else info.get("latest", ""))
         if new_version and not allow_older and not is_newer(new_version, current):
