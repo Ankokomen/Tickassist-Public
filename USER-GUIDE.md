@@ -10,8 +10,14 @@ administrator rights are needed. The Python it runs on comes with it.
 
 Start TickAssist from the Start menu or the desktop shortcut (or `run.bat` in
 the program folder). Your browser opens on the page. Starting it while it is
-already running just opens another tab on the running copy. To stop it, close
-its console window (or press `Ctrl+C` in it).
+already running just opens another tab on the running copy.
+
+TickAssist runs without a window of its own. Look for its icon (TA) by the
+clock: click it to open the page, right-click it to open MAX, see whether MAX
+is being read, check for updates, restart TickAssist or quit it. What it
+would once have printed in a console window is kept in `tickassist.log` in
+the data folder. `run.bat --console` starts it the old way, in a console
+window that shows that output; close the window (or press `Ctrl+C`) to stop.
 
 The page is only reachable from this PC: TickAssist listens on localhost only.
 

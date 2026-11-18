@@ -217,8 +217,8 @@ def save_features(app, req):
     data = req.json()
     if app.updates.restart_needed():
         raise HttpError(409, f"TickAssist was updated to {app.updates.current()} while it was running "
-                             f"(still running {app.updates.started_version}). Close the TickAssist window, "
-                             "start it again with run.bat, then save the features.")
+                             f"(still running {app.updates.started_version}). Restart it from the TickAssist "
+                             "icon by the clock, then save the features.")
     settings = app.settings.all()
     if not data.get("reset") and not isinstance(data.get("features"), dict):
         raise ValueError("No feature switches sent.")

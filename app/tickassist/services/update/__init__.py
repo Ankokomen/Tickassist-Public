@@ -26,6 +26,11 @@ STARTUP_WAIT_SECONDS = 10
 CHECK_KEEP_SECONDS = 300
 
 
+# Called just before a restart ends this process (which skips the usual
+# clean-up): what has to be put away first, such as the icon by the clock.
+before_exit = []
+
+
 class Busy(Exception):
     """An update is already installed and waiting for a restart (HTTP 409)."""
 
@@ -92,6 +97,13 @@ class Updates:
         info = sources.check(url, self.current(), self.product, token)
         self._checked = (now, url, token, dict(info))
         return info
+
+    def known_newer(self):
+        """The newer version the last check found, or None. Never asks."""
+        kept = self._checked
+        if kept and is_newer(kept[3].get("latest"), self.current()) and not self.restart_needed():
+            return kept[3]["latest"]
+        return None
 
     def install_latest(self):
         self._ensure_not_pending("An update is already installed - restart TickAssist to use it.")
@@ -169,4 +181,11 @@ def restart(config, browser=False, updated_from=""):
         keep = [a for a in sys.argv
                 if a not in ("--restarted", "--no-browser") and not a.startswith("--updated")]
         subprocess.Popen([sys.executable] + keep + extra.split(), cwd=config.root_dir)
-    threading.Timer(0.6, lambda: os._exit(0)).start()
+    def leave():
+        for put_away in list(before_exit):
+            try:
+                put_away()
+            except Exception:      # noqa: BLE001 - leaving matters more
+                pass
+        os._exit(0)
+    threading.Timer(0.6, leave).start()

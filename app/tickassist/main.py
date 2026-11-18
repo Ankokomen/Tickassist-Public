@@ -4,6 +4,11 @@
     server.py --no-browser    don't open the page
     server.py --no-update     skip the automatic update at start-up
     server.py --open-max      open MAX in a browser TickAssist can read, then exit
+    server.py --no-tray       no icon by the clock
+
+Started without a console (run.bat does, with pythonw.exe) what would have
+been printed goes to tickassist.log in the data folder, and the icon by the
+clock (tray.py) is where the program is opened, restarted and quit from.
     --restarted / --updated=  set by a restart after an update
 """
 
@@ -74,13 +79,52 @@ def open_max(cfg):
     return 0 if result["ok"] else 1
 
 
+LOG_NAME = "tickassist.log"
+TRAY_ICON = "favicon.ico"           # TickAssist's mark (TA on blue and pink): the tab, the shortcuts, the tray
+LOG_KEEP_BYTES = 1024 * 1024
+
+
+def log_to_file(data_dir):
+    """No console to print to: keep what would have been printed in the data
+    folder instead (started afresh once it has grown large)."""
+    try:
+        os.makedirs(data_dir, exist_ok=True)
+        path = os.path.join(data_dir, LOG_NAME)
+        fresh = not os.path.exists(path) or os.path.getsize(path) > LOG_KEEP_BYTES
+        out = open(path, "w" if fresh else "a", encoding="utf-8", buffering=1)
+    except OSError:
+        out = open(os.devnull, "w", encoding="utf-8")
+    sys.stdout = sys.stderr = out
+    print("---- TickAssist started %s ----" % time.strftime("%Y-%m-%d %H:%M:%S"))
+    return out
+
+
+def start_tray(app, cfg, url, httpd, argv):
+    """The icon by the clock, or None (not Windows, switched off, or Windows
+    would not show one - TickAssist runs all the same)."""
+    if os.name != "nt" or "--no-tray" in argv or os.environ.get("TICKASSIST_TRAY", "").strip() == "0":
+        return None
+    from .services import update
+    from .tray import Console, Tray
+    console = Console(app, url, webbrowser.open, lambda: update.restart(cfg),
+                      lambda: threading.Thread(target=httpd.shutdown, daemon=True).start())
+    tray = Tray(console, os.path.join(cfg.static_dir, TRAY_ICON))
+    if not tray.start():
+        return None
+    update.before_exit.append(tray.stop)       # a restart ends the process abruptly: take the icon along
+    return tray
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
+    cfg = config_module.load()
+    windowless = sys.stdout is None
+    if windowless:
+        log_to_file(cfg.data_dir)
     try:
         sys.stdout.reconfigure(line_buffering=True)    # prompt log lines even when piped
     except (AttributeError, ValueError):
         pass
-    cfg = config_module.load()
     if "--open-max" in argv:
         return open_max(cfg)
 
@@ -126,7 +170,8 @@ def main(argv=None):
     print("=" * 56)
     print(f"  Data     : {app.store.identity}")
     print(f"  Serving  : {url}")
-    print("  Press Ctrl+C to stop.")
+    tray = start_tray(app, cfg, url, httpd, argv)
+    print("  Quit from the TickAssist icon by the clock." if tray else "  Press Ctrl+C to stop.")
     print("=" * 56)
     if browser:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
@@ -135,6 +180,8 @@ def main(argv=None):
     except KeyboardInterrupt:
         print("\nShutting down...")
     finally:
+        if tray:
+            tray.stop()
         app.shutdown()
         httpd.server_close()
     return 0

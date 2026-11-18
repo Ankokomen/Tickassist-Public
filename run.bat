@@ -2,6 +2,11 @@
 REM ============================================================
 REM  TickAssist - portable ticket handling tool
 REM  Double-click to start. No installation, no admin rights.
+REM
+REM  It runs without a window: look for the TickAssist icon by the
+REM  clock (right-click it to open, restart or quit). What it would
+REM  print goes to tickassist.log in the data folder.
+REM      run.bat --console    keep this window and print here instead
 REM  Runs from any location, including paths that contain spaces.
 REM ============================================================
 setlocal
@@ -13,6 +18,13 @@ if exist "%~dp0installed.txt" set "TICKASSIST_DATA=%APPDATA%\TickAssist"
 
 set "PY="
 set "PYARGS="
+
+REM Without a window, when the bundled runtime can (and --console wasn't asked for).
+echo %* | find /i "--console" >nul
+if errorlevel 1 if exist "%~dp0runtime\pythonw.exe" (
+    start "" "%~dp0runtime\pythonw.exe" "%~dp0app\server.py" %*
+    exit /b 0
+)
 
 REM 1) Prefer the vendored, self-contained runtime (no admin needed).
 if exist "%~dp0runtime\python.exe" (

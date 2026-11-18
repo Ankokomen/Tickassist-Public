@@ -44,7 +44,7 @@ export function renderFeatures() {
   restart.classList.toggle("hidden", !featureInfo.restart_needed);
   restart.textContent = featureInfo.restart_needed
     ? `TickAssist was updated while it was running (still running ${featureInfo.running_version}). ` +
-      "Close the TickAssist window and start it again with run.bat before changing features."
+      "Restart it from the TickAssist icon by the clock before changing features."
     : "";
 }
 

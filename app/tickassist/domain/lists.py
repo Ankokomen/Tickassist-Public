@@ -12,7 +12,7 @@ checked against or added to the list until it is switched on again.
 """
 
 FIXED_LISTS = {
-    "device_types": ["Promax", "ProOne", "ProSensor", "ProX", "Planmeca Intra", "Viso",
+    "device_types": ["Promax", "ProOne", "ProSensor", "ProX", "Planmeca Intra", "ProStyle Intra", "Viso",
                      "Server", "Workstation", "Romexis"],
     "reco_units": ["5810", "3600", "3620", "3630", "3650", "3660", "T2 2250"],
     "reco_os": ["CentOS", "Ubuntu"],
@@ -31,7 +31,7 @@ MANAGED_LISTS = {
     "reco_units": FIXED_LISTS["reco_units"],
     # System Environment lists: typable dropdowns in the note. They fill from
     # saved tickets the first time (see ENV_LIST_COLUMNS) and from each save.
-    "os_versions": ["10", "11", "2016", "2019", "2022", "2025",
+    "os_versions": ["XP", "7", "10", "11", "2016", "2019", "2022", "2025",
                     "Ventura 13", "Sonoma 14", "Sequoia 15", "Tahoe 26"],
     "device_firmware": [], "device_tool_versions": [], "didapi_versions": [],
     "romexis_versions": [], "imaging_packages": [],
