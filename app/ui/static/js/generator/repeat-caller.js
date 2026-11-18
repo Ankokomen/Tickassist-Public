@@ -66,15 +66,19 @@ export function checkRepeatCaller() {
   const phone = getVal("phone");
   const digits = phone.replace(/\D/g, "");
   clearTimeout(repeatLookupTimer);
+  // Whatever was being looked up is for a number that is no longer in the
+  // field: its answer, still on its way, must not arrive in this one's place.
+  const token = ++repeatLookupToken;
   if (knownCallerFill && knownCallerFill.digits !== digits) undoKnownCallerFill();
   if (digits.length < 7) return clearRepeatCaller();
   if (digits === repeatDismissedDigits) return clearRepeatCaller();
-  const token = ++repeatLookupToken;
   repeatLookupTimer = setTimeout(async () => {
     try {
       const data = await api("GET", `/api/tickets/lookup?phone=${encodeURIComponent(phone)}`);
       // A slower earlier request must not overwrite a newer answer.
       if (token !== repeatLookupToken) return;
+      // ...nor one for a number the field no longer holds (changed without typing).
+      if (getVal("phone").replace(/\D/g, "") !== digits) return;
       // While editing a saved ticket, that ticket is not a previous call.
       const matches = (data.matches || [])
         .filter((t) => !(editing && Number(t.id) === Number(editing.id)));
@@ -84,8 +88,13 @@ export function checkRepeatCaller() {
   }, 350);
 }
 
-// Cleared with the form: a new note gets the notice again.
-export function forgetRepeatDismissal() { repeatDismissedDigits = ""; }
+// Cleared with the form: a new note gets the notice again, and a lookup begun
+// for the old note is dropped rather than answered into the new one.
+export function forgetRepeatDismissal() {
+  repeatDismissedDigits = "";
+  clearTimeout(repeatLookupTimer);
+  repeatLookupToken++;
+}
 
 // "View" (there when the caller's history can be shown) jumps to it; the X
 // hides the notice for this number.
