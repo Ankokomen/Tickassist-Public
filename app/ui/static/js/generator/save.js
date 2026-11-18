@@ -16,7 +16,7 @@ import { missingRequired, reportMissingRequired } from "./required.js";
 import { resetIncomingState, takePendingIncoming } from "../integrations/callwatch.js";
 import { rosterAfterSave } from "../integrations/roster.js";
 import { resetSheetState } from "../integrations/sheets.js";
-import { autoRegister, ENV_COMBOS, FREE_LISTS, reportUnlisted, unlistedFields } from "../lists/lists.js";
+import { autoRegister, ENV_COMBOS, forgetListedValues, FREE_LISTS, reportUnlisted, unlistedFields } from "../lists/lists.js";
 import { switchPage } from "../pages/nav.js";
 import { discardDraftPhotos, forgetPhotos, loadPhotos, photos } from "../photos.js";
 
@@ -24,7 +24,14 @@ import { discardDraftPhotos, forgetPhotos, loadPhotos, photos } from "../photos.
 // updates it in place; asNew=true forks the current fields into a fresh row.
 // A Case ID is required before saving so cases get created in D365 up front;
 // bypass=true (Shift+Click the Save button) skips that gate.
+let saving = false;
 export async function saveTicket(asNew = false, bypass = false) {
+  if (saving) return;        // a second press while the first is still on its way
+  saving = true;
+  try { await saveNow(asNew, bypass); } finally { saving = false; }
+}
+
+async function saveNow(asNew, bypass) {
   if (!bypass && !hasCaseNumber()) {
     showToast("Enter a Case ID before saving", "red");
     const el = $("caseNumber");
@@ -95,6 +102,10 @@ export function resetFields() {
   resetIncomingState();
   clearRepeatCaller();
   resetSheetState();
+  forgetListedValues();
+  // What a blocked save marked belongs to the note that is gone.
+  document.querySelectorAll(".form-panel .list-invalid, .form-panel .req-missing")
+    .forEach((el) => el.classList.remove("list-invalid", "req-missing"));
   setEditing(null);
   // Before refreshTimestamp, so its saveFormState persists the zeroed clock.
   resetFiTimer();

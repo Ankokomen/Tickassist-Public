@@ -10,10 +10,7 @@ _PHONE_RE = re.compile(
 )
 
 # A D365 case number shown with the call - e.g. "Inbound Case Reference:
-# CAS0490097" in the Call Triage panel MAX pops. That panel can load when the
-# call is answered rather than when it rings, so it is looked for longer than
-# the skill; the CAS + 7 digits shape is distinctive enough to allow that.
-CASE_SECONDS = 120
+# CAS0490097" in the Call Triage panel MAX pops.
 CASE_RE = re.compile(r"(?<![A-Za-z0-9])CAS-?(\d{7})(?!\d)", re.IGNORECASE)
 
 # The page CXone opens when a call is answered carries the call's own id:

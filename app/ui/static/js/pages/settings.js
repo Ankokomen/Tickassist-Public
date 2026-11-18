@@ -60,12 +60,16 @@ export async function loadSettings() {
     fillUpdateSettings(s);
     applyOpenAllSetting(s.fi_open_all);
     if ($("rpt-rules") && document.activeElement !== $("rpt-rules")) $("rpt-rules").value = s.report_rules || "";
-    if ($("llm-prompt") && document.activeElement !== $("llm-prompt")) $("llm-prompt").value = s.polish_prompt || "";
-    $("llm-provider").value = s.llm_provider || "gemini";
-    $("llm-model").value = s.llm_model || "";
-    $("llm-key").value = s.llm_api_key || "";
+    if ($("llm-prompt") && !aiEdited && document.activeElement !== $("llm-prompt")) $("llm-prompt").value = s.polish_prompt || "";
+    // Not over what is being typed there: settings are read again whenever a
+    // drawer opens or saves.
+    if (!aiEdited) {
+      $("llm-provider").value = s.llm_provider || "gemini";
+      $("llm-model").value = s.llm_model || "";
+      $("llm-key").value = s.llm_api_key || "";
+    }
     $("key-status").textContent = s.api_key_set ? "A key is currently saved." : "No key saved yet.";
-    $("model-help").textContent = MODEL_HINTS[s.llm_provider] || "";
+    $("model-help").textContent = MODEL_HINTS[$("llm-provider").value] || "";
     fillDrawers(s);
     resetReqPanel();
     applyRequiredMarks();
@@ -86,6 +90,7 @@ async function saveSettings() {
       llm_api_key: $("llm-key").value,
       polish_prompt: $("llm-prompt").value,
     });
+    aiEdited = false;
     showToast("Settings saved", "green");
     loadSettings();
   } catch (err) { showToast(err.message, "red"); }
@@ -129,13 +134,19 @@ export function initSettingsTabs() {
 }
 
 // AI Polish (the drawers save their own fields).
+let aiEdited = false;       // the AI Polish fields hold something not saved yet
 export function initSettingsPage() {
   on("btn-save-settings", "click", saveSettings);
+  ["llm-provider", "llm-model", "llm-key", "llm-prompt"].forEach((id) => {
+    on(id, "input", () => { aiEdited = true; });
+    on(id, "change", () => { aiEdited = true; });
+  });
   on("llm-provider", "change", () => {
     $("model-help").textContent = MODEL_HINTS[$("llm-provider").value] || "";
   });
   on("btn-llm-prompt-reset", "click", () => {
     $("llm-prompt").value = (settingsCache && settingsCache.polish_prompt_default) || "";
+    aiEdited = true;
     showToast("Default instructions restored - press Save Settings to keep them", "indigo");
   });
 }

@@ -149,7 +149,7 @@
                   title="Notes you save are tagged as Troubleshooting calls">Troubleshooting</button>
         </div>
         <!-- Substituted server-side from the VERSION file at the project root;
-             app.js backfills it if this page is ever served unrendered. -->
+             the page script backfills it if this page is ever served unrendered. -->
         <span class="topbar-meta" id="app-version" title="TickAssist version">v{{VERSION}}</span>
         <button class="btn small indigo hidden" id="update-chip" type="button" title="A newer version is published - install it and restart"></button>
         <button class="icon-btn" id="btn-theme-quick" title="Toggle light / dark theme">
@@ -178,7 +178,7 @@
       <div class="nav-spacer"></div>
 
       <!-- Live health of the integrations set up on this PC, readable from any
-           page. Rendered by app.js (renderConnections) and hidden while none
+           page. Rendered by integrations/status.js and hidden while none
            are set up; a click opens that integration's drawer over the page
            in hand, so a lapsed sign-in is fixed without leaving the note. -->
       <div class="conn hidden" id="conn">
@@ -458,7 +458,7 @@
             </div>
             <div class="panel-head preview-head">
               <h2 class="panel-title">Note Preview</h2>
-              <!-- First Impressions handle timer. app.js shows it only on that
+              <!-- First Impressions handle timer. The page script shows it only on that
                    rotation, starts it on the first field entry (or a timestamp
                    double-click), and drives the 10-to-15-minute glow ramp. -->
               <span class="fi-timer hidden" id="fi-timer"
@@ -904,7 +904,7 @@
        is showing - opened from its Settings tile, from the Connections list in
        the sidebar, or from a D365 error mid-note - so fixing a connection never
        means leaving the note in hand, and the page underneath never moves. One
-       backdrop, one drawer at a time (app.js: openDrawer / closeDrawer). -->
+       backdrop, one drawer at a time (integrations/drawers.js). -->
   <div class="drawer-backdrop hidden" id="drawer-backdrop"></div>
 
   <!-- Call transfer (the old Call Triage page) -->
@@ -917,7 +917,7 @@
       </div>
       <button class="icon-btn" data-drawer-close title="Close (Esc)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="drawer-body" data-no-dirty-except="tr-url">
+    <div class="drawer-body">
       <div id="tr-main" class="tr-main">
         <!-- What is about to be transferred: read off the note and the call. -->
         <div class="tr-summary">

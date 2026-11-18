@@ -6,6 +6,7 @@ under the threading HTTP server without any shared-connection locking.
 """
 
 import sqlite3
+import threading
 from contextlib import contextmanager
 
 TICKETS_SCHEMA = """
@@ -103,6 +104,7 @@ class MemoryDatabase(Database):
 
     def __init__(self, name):
         self._uri = "file:%s?mode=memory&cache=shared" % name
+        self._turn = threading.RLock()
         # Shared-cache memory databases vanish when their last connection
         # closes; this one is kept open for the life of the process.
         self._anchor = sqlite3.connect(self._uri, uri=True, check_same_thread=False)
@@ -113,3 +115,11 @@ class MemoryDatabase(Database):
         conn.execute("PRAGMA read_uncommitted = 1")
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
+
+    @contextmanager
+    def session(self):
+        # Connections to a shared memory database lock each other's tables,
+        # and that is refused at once instead of waited for: one at a time.
+        with self._turn:
+            with super().session() as conn:
+                yield conn

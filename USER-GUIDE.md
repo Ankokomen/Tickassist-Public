@@ -413,7 +413,7 @@ that folder. Scripted installs: `Install-TickAssist.bat -Quiet` (add
 self-contained copy in that folder instead, with no shortcuts, which keeps
 its data in its own `data` folder.
 
-**Updating a PC**: Settings > General > Updates. TickAssist installs from the
+**Updating a PC**: Settings > Updates. TickAssist installs from the
 Releases of its own GitHub repository (the address is built in, not a setting
 on the PC); it checks whenever it opens and shows an *Update x.y available* button
 in the top bar. One click downloads the update, checks it against the SHA-256

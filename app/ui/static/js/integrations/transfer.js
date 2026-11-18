@@ -28,8 +28,12 @@ const TRANSFER_GUESS = [
   [/viso/i, "viso"], [/cad\s*cam|cerec|primescan/i, "cadcam"],
 ];
 
+// The call last transferred. Its page stays on screen a while, so its id is
+// still reported: it must not come back as the call to transfer.
+let transferredId = "";
+
 export function noteTransferCall(ev) {
-  if (ev && ev.contact_id && ev.source !== "test") {
+  if (ev && ev.contact_id && ev.source !== "test" && ev.contact_id !== transferredId) {
     transferCall = { contactId: ev.contact_id, digits: ev.digits, phone: ev.phone };
     if (openDrawerName === "transfer") renderTransfer();
   }
@@ -116,6 +120,7 @@ async function runTransfer(eq, q) {
     return;
   }
   if (!transferCall) return showToast("No active call ID captured from MAX", "red");
+  const call = transferCall;      // the one the question names, whatever rings in while it is up
   const ok = await confirmModal("Transfer this call?",
     `Destination: ${q.name}\nCase: ${cas}\nContact: ${getVal("contact") || "(none entered)"}\nCall: ${callLabel()}`,
     "Transfer");
@@ -124,7 +129,7 @@ async function runTransfer(eq, q) {
   $("tr-error").hidden = true;
   try {
     const r = await api("POST", "/api/transfer", {
-      contactId: transferCall.contactId, targetSkill: q.skill, caseNumber: cas,
+      contactId: call.contactId, targetSkill: q.skill, caseNumber: cas,
       contactName: getVal("contact"), equipment: eq.key,
     });
     $("tr-done-queue").textContent = r.queue;
@@ -133,7 +138,8 @@ async function runTransfer(eq, q) {
       (r.reply ? `: ${r.reply}` : " with no message.");
     $("tr-main").hidden = true;
     $("tr-done").hidden = false;
-    transferCall = null;      // that call is gone; never reuse its id
+    transferredId = call.contactId;
+    if (transferCall === call) transferCall = null;      // that call is gone; never reuse its id
     showToast(`Call transferred to ${r.queue}`, "green");
   } catch (err) {
     // Stays until dismissed or the next attempt: a toast vanishes too fast.
@@ -175,6 +181,8 @@ export function initTransfer() {
   document.addEventListener("click", (e) => {
     if (e.target.closest('[data-open-drawer="transfer"]')) {
       $("tr-done").hidden = true; $("tr-main").hidden = false;
+      $("tr-error").hidden = true;
+      $("tr-equip").value = "";       // suggested afresh from this note's Device Type
       loadTransferConfig().then(renderTransfer);
     }
   });

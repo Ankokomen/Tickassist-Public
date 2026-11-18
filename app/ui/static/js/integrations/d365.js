@@ -202,6 +202,7 @@ async function saveD365Settings(quiet = false) {
   } catch (err) { showToast(err.message, "red"); return false; }
 }
 
+let d365Waiting = false;      // already watching for a sign-in to finish
 async function d365SignIn() {
   if (!(await saveD365Settings(true))) return;
   if (!d365State.configured) {
@@ -210,19 +211,23 @@ async function d365SignIn() {
   }
   window.open("/d365/login", "_blank");
   $("d365-status").textContent = "Waiting for the Microsoft sign-in tab...";
-  const until = Date.now() + 5 * 60 * 1000;
-  while (Date.now() < until) {
-    await new Promise((r) => setTimeout(r, 2000));
-    try {
-      const st = await api("GET", "/api/d365/status");
-      if (st.signed_in) {
-        setD365State(st);
-        showToast(`Signed in to D365${st.user ? " as " + st.user : ""}`, "green");
-        return;
-      }
-    } catch (e) { /* keep waiting */ }
-  }
-  setD365State();
+  if (d365Waiting) return;      // pressed again: the tab is reopened, one watch is enough
+  d365Waiting = true;
+  try {
+    const until = Date.now() + 5 * 60 * 1000;
+    while (Date.now() < until) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const st = await api("GET", "/api/d365/status");
+        if (st.signed_in) {
+          setD365State(st);
+          showToast(`Signed in to D365${st.user ? " as " + st.user : ""}`, "green");
+          return;
+        }
+      } catch (e) { /* keep waiting */ }
+    }
+    setD365State();
+  } finally { d365Waiting = false; }
 }
 
 async function d365SignOut() {
@@ -344,13 +349,14 @@ function d365RenderResults(note) {
 async function d365Search(phone, name) {
   const d = d365Dialog;
   if (!d) return;
+  const search = d.search = (d.search || 0) + 1;      // only the newest search's answer is shown
   $("d365-results").innerHTML = `<div class="d365-empty">Searching D365...</div>`;
   try {
     const q = new URLSearchParams();
     if (phone) q.set("phone", phone);
     if (name) q.set("name", name);
     const res = await api("GET", `/api/d365/customers?${q}`);
-    if (d365Dialog !== d) return;
+    if (d365Dialog !== d || d.search !== search) return;
     d.matches = res.matches || [];
     // One match, or one person among a contact and accounts sharing the
     // number, is picked for you; anything less clear is left to choose.
@@ -359,7 +365,7 @@ async function d365Search(phone, name) {
       : people.length === 1 && phone ? d.matches.indexOf(people[0]) : null;
     d365RenderResults(phone && !name ? `No D365 contact or account has ${phone}. Search by name.` : "");
   } catch (err) {
-    if (d365Dialog !== d) return;
+    if (d365Dialog !== d || d.search !== search) return;
     d.matches = [];
     d365RenderResults(err.message);
     if (/sign/i.test(err.message)) setD365State({ ...d365State, signed_in: false });

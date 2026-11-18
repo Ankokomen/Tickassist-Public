@@ -75,7 +75,11 @@ function initKeyboard() {
   on("modal", "click", (e) => { if (e.target === $("modal")) closeModal(false); });
   document.addEventListener("keydown", (e) => {
     if (!isShown("modal")) return;
-    if (e.key === "Enter") { e.preventDefault(); closeModal(true); }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (e.repeat) return;      // the key held from whatever opened the question is not an answer
+      closeModal(document.activeElement !== $("modal-cancel"));
+    }
     else if (e.key === "Escape") { e.preventDefault(); closeModal(false); }
   });
 
@@ -89,7 +93,7 @@ function initKeyboard() {
       if (openDrawerName && !confirmOpen) {
         const save = drawerEl(openDrawerName).querySelector(".drawer-foot .btn.indigo");
         if (save && !save.classList.contains("hidden")) save.click();
-      } else if (onGenerator && !anyModalOpen) saveTicket(false);
+      } else if (onGenerator && !anyModalOpen && !e.repeat) saveTicket(false);
     } else if (e.key === "Enter" && onGenerator && !anyModalOpen) {
       e.preventDefault();
       // Same as the Copy Note button - photos included when the note has any.

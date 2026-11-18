@@ -39,7 +39,7 @@ export function buildNote() {
   const when = getVal("dateTime");
   if (when) meta.push(`DATE: ${when}`);
   meta.push(`CALL TYPE: ${callType}`);
-  if (meta.length) blocks.push(meta.join("\n"));
+  blocks.push(meta.join("\n"));
 
   const contactLines = [];
   const contact = getVal("contact");

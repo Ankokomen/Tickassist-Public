@@ -43,7 +43,7 @@ class Request:
 
     def int_arg(self, name):
         raw = self.arg(name)
-        return int(raw) if raw.isdigit() else None
+        return int(raw) if raw.isascii() and raw.isdigit() else None
 
     @property
     def length(self):

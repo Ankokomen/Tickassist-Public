@@ -42,8 +42,9 @@ export function createCombobox(inputId, menuId, listKey, onChoose, filter) {
     items[activeIndex].scrollIntoView({ block: "nearest" });
   }
   function choose(name) {
-    input.value = name; close(); input.classList.remove("list-invalid");
+    input.value = name; input.classList.remove("list-invalid");
     if (onChoose) onChoose();
+    close();      // last: onChoose may fire the field's input event, which opens the list
   }
 
   input.addEventListener("focus", () => { if (!pinned) open(); });

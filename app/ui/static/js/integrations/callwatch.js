@@ -51,6 +51,7 @@ export function resetIncomingState() {
   incomingTypeFromSkill = false;
   knownCallerFill = null;
   contactTypePicked = false;
+  renderIncomingNotice();      // a "caller ID withheld" line goes with the note it was for
 }
 
 // A hand pick of Contact Type is the user's word on it for this note; a known
@@ -310,7 +311,6 @@ function handleIncoming(ev) {
   }
   if (ev.update) return; // a type for a call that is no longer in play
   const from = INCOMING_SOURCE_LABEL[ev.source] || "MAX";
-  showCallCard(ev);           // LCARS only; a no-op on every other theme
   if (!current && !editing) {
     const set = fillIncomingPhone(ev.phone, ev.contact_type, ev.case_number);
     showToast(`Incoming call ${ev.phone}${withType(set.type)}${withCase(set.caseNumber)} - filled from ${from}`, "indigo");
@@ -321,6 +321,7 @@ function handleIncoming(ev) {
     renderIncomingNotice();
     showToast(`Incoming call ${ev.phone} - Phone Number already filled, not replaced`, "slate");
   }
+  showCallCard(ev);           // LCARS only; after the above, so it knows whether the number is on offer
 }
 
 export async function pollIncoming() {
@@ -476,7 +477,7 @@ async function refreshCallWatch() {
   try {
     callTestLine = "";
     const r = await api("POST", "/api/callwatch/refresh", {});
-    renderCallWatchStatus(r.call_watch || r.watch);
+    renderCallWatchStatus(r.watch);
     showToast(r.restarted ? "Window reader restarted - re-reading MAX"
                           : "Reader not started - see the status line",
               r.restarted ? "green" : "slate");

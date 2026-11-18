@@ -1,12 +1,13 @@
 """The HTTP server: standard-library ThreadingHTTPServer, localhost only."""
 
+import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
 from . import pages
 from .api import calls, d365, lists, photos, roster, settings, tickets, tools, updates
-from .http import Request
+from .http import Request, Response
 from .router import Router
 
 MODULES = (pages, settings, tickets, photos, lists, calls, d365, tools, roster, updates)
@@ -21,10 +22,33 @@ def make_handler(router, version):
     class Handler(BaseHTTPRequestHandler):
         server_version = "TickAssist/" + version
 
+        def _ours(self):
+            """Whether the request is for this program and from its own page.
+            Any web page can make the browser send a request to localhost;
+            what it cannot do is hide where it came from. So: the address
+            asked for must be this PC (a name that merely points here is
+            someone else's site), and anything that changes something must
+            not come from another site's page."""
+            port = self.server.server_address[1]
+            names = {"%s:%d" % (name, port) for name in ("localhost", "127.0.0.1", "[::1]")}
+            if (self.headers.get("Host") or "").strip().lower() not in names:
+                return False
+            origin = (self.headers.get("Origin") or "").strip().lower()
+            if self.command != "GET" and origin and origin not in {"http://" + name for name in names}:
+                return False
+            return True
+
         def _handle(self):
-            req = Request(self.command, self.path, self.headers, self.rfile,
-                          self.server.server_address[1])
-            res = router.dispatch(req)
+            if not self._ours():
+                res = Response.error("This address only answers TickAssist's own page.", 403)
+            else:
+                try:
+                    req = Request(self.command, self.path, self.headers, self.rfile,
+                                  self.server.server_address[1])
+                except ValueError:              # an address that cannot be read
+                    res = Response.error("Bad request.", 400)
+                else:
+                    res = router.dispatch(req)
             self.send_response(res.status)
             for name, value in res.headers:
                 self.send_header(name, value)
@@ -52,6 +76,9 @@ def make_handler(router, version):
 class Server(ThreadingHTTPServer):
     # Long-polls park a thread each; they must not keep the process alive.
     daemon_threads = True
+    # On Windows "reuse the address" means binding over a port something is
+    # still listening on - a second TickAssist would then share this one's.
+    allow_reuse_address = os.name != "nt"
     # The page asks for all of its modules at once. With the default queue of
     # 5, Windows refuses the connections that don't fit and the page loads
     # without its script.

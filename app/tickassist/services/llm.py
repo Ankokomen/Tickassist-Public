@@ -5,10 +5,12 @@ non-issue. Uses only urllib from the standard library. Two providers are
 supported: Google Gemini (the original tool's provider) and Anthropic Claude.
 """
 
+import http.client
 import json
 import re
-import urllib.request
 import urllib.error
+import urllib.parse
+import urllib.request
 
 # The instructions AI Polish follows. Carried over from the original generator
 # so the behaviour matches what users already expect. This part can be edited
@@ -105,6 +107,10 @@ def _http_post_json(url, body, headers):
         raise LLMError(f"Provider returned HTTP {err.code}. {_short(detail)}")
     except urllib.error.URLError as err:
         raise LLMError(f"Could not reach the provider: {err.reason}")
+    except ValueError:
+        raise LLMError("The provider's answer could not be read.")
+    except (OSError, http.client.HTTPException) as err:      # a timeout while reading, a bad address
+        raise LLMError(f"Could not reach the provider: {err}")
 
 
 def _short(text, limit=300):
@@ -244,7 +250,7 @@ def _lost_fields(data, cleaned):
 def _polish_gemini(data, api_key, model, extra, system):
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={api_key}"
+        f"{urllib.parse.quote(model, safe='')}:generateContent?key={api_key}"
     )
     body = {
         "contents": [{"parts": [{"text": _user_payload(data, extra)}]}],

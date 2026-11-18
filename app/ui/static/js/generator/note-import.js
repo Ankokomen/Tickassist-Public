@@ -2,12 +2,14 @@
 
 import { $ } from "../core/dom.js";
 import { showToast } from "../core/ui.js";
-import { CALL_TYPES, setCallType } from "./calltype.js";
+import { CALL_TYPES, canonicalCallType, setCallType } from "./calltype.js";
 import { saveFormState } from "./draft.js";
 import { revealEnvIfFilled } from "./env-section.js";
-import { setOs } from "./fields.js";
+import { normalizeResolutionStatus, setOs } from "./fields.js";
 import { normalizeBulletField } from "./note.js";
 import { autoGenerateTitle, update } from "./preview.js";
+import { checkRepeatCaller } from "./repeat-caller.js";
+import { resetSheetState, sheetLookup } from "../integrations/sheets.js";
 
 // The inverse of buildNote(): recognizes the labeled blocks a service note is
 // made of and returns { <form-field-id>: value, osName } for the fields found.
@@ -76,8 +78,9 @@ function repairLostLineBreaks(text) {
   return text
     .replace(/\s*_{5,}\s*/g, "\n")                        // signature rule
     .replace(/\s*(-{5,})\s*/g, "\n$1\n")                  // block dividers
-    .replace(new RegExp(`\\s*((?:${INLINE_LABELS}):)\\s*`, "gi"), "\n$1 ")
-    .replace(new RegExp(`\\s*(${BLOCK_LABELS}):\\s*`, "gi"), "\n$1:\n")
+    // Not in the middle of a word: "Firmware update: 3.2" has no DATE in it.
+    .replace(new RegExp(`\\s*(?<![A-Za-z])((?:${INLINE_LABELS}):)\\s*`, "gi"), "\n$1 ")
+    .replace(new RegExp(`\\s*(?<![A-Za-z])(${BLOCK_LABELS}):\\s*`, "gi"), "\n$1:\n")
     .replace(new RegExp(`\\s*(-\\s*(?:${ENV_LABELS}):)\\s*`, "gi"), "\n$1 ")
     .replace(/\n{2,}/g, "\n")
     .replace(/^\n+|\n+$/g, "");
@@ -192,7 +195,8 @@ function applyImport(out) {
     const el = $(id);
     if (!el) continue;
     if (el.tagName === "SELECT") {
-      if ([...el.options].some((o) => o.value === out[id])) { el.value = out[id]; count++; }
+      const value = id === "resStatus" ? normalizeResolutionStatus(out[id]) : out[id];
+      if ([...el.options].some((o) => o.value === value)) { el.value = value; count++; }
     } else {
       el.value = out[id];
       count++;
@@ -203,8 +207,9 @@ function applyImport(out) {
   }
   // An imported note tags this draft only - an unrecognised value is ignored,
   // and the standing rotation is never moved by pasting someone else's note.
-  if (out.callType && CALL_TYPES.includes(out.callType)) {
-    setCallType(out.callType, false);
+  const rotation = canonicalCallType(out.callType);
+  if (rotation && CALL_TYPES.includes(rotation)) {
+    setCallType(rotation, false);
     count++;
   }
   revealEnvIfFilled();
@@ -243,7 +248,11 @@ export async function importNote() {
   // No title in the note (the clipboard copy strips it)? Rebuild it from the
   // imported device / problem / serial / status so the preview isn't blank.
   if (out.caseTitle === undefined) autoGenerateTitle();
+  // What the form knew about the note it held before is not about this one.
+  resetSheetState();
   update();
+  checkRepeatCaller();
+  if ($("imagingPackage").value.trim()) sheetLookup(false, true);
   saveFormState();
   showToast(`Imported ${count} field${count === 1 ? "" : "s"} from the clipboard`, "green");
 }

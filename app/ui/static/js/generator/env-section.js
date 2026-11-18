@@ -1,6 +1,6 @@
 /* ---- generator: collapsible System Environment --------------------------- */
 
-import { $, getVal, on, toggle } from "../core/dom.js";
+import { $, getVal, on } from "../core/dom.js";
 import { KEYS, store } from "../core/storage.js";
 
 // The block is tall and often untouched for a whole shift, so it folds away to

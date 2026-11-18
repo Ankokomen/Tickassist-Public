@@ -27,7 +27,10 @@ export async function loadPhotos() {
     const data = await api("GET", `/api/photos?${scope}`);
     if (scope !== photoScope()) return; // the form moved on meanwhile
     photos = data.photos || [];
-  } catch (err) { photos = []; }
+  } catch (err) {
+    if (scope !== photoScope()) return;
+    photos = [];
+  }
   renderPhotos();
 }
 

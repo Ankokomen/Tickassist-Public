@@ -65,6 +65,8 @@ export function rememberListedValues() {
     if ($(id)) $(id).classList.remove("list-invalid");
   });
 }
+// The form was cleared: the next note is checked in full.
+export function forgetListedValues() { loadedListed = {}; }
 const sheetVerdict = {};        // "list|value" -> { ok, at }
 
 function listedKey(id) { const f = LISTED_FIELDS.find((x) => x[1] === id); return f && f[0]; }

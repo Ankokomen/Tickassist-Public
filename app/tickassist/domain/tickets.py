@@ -52,4 +52,5 @@ def same_phone(stored, wanted_digits):
     """Digits-only match, either way round, so 410-498-6464, (410) 498 6464 and
     14104986464 are one number."""
     have = digits(stored)
-    return bool(have) and (have.endswith(wanted_digits) or wanted_digits.endswith(have))
+    # A stored "4" or "x12" is not a number: it would end every caller's.
+    return len(have) >= 7 and (have.endswith(wanted_digits) or wanted_digits.endswith(have))

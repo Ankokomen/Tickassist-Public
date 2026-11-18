@@ -2,7 +2,7 @@
 
 import { api } from "../core/api.js";
 import { $, escapeHtml, getVal, on } from "../core/dom.js";
-import { localDateTime } from "../core/format.js";
+import { localStamp } from "../core/format.js";
 import { hook } from "../core/hooks.js";
 import { editing } from "./edit-session.js";
 import { fillKnownCaller, knownCallerFill, undoKnownCallerFill } from "../integrations/callwatch.js";
@@ -54,7 +54,7 @@ function renderRepeatCaller(matches, phone) {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>` +
     `<span class="rc-text">Called before &mdash; ${lead}` +
     `<span class="rc-meta">(${n} total ${n === 1 ? "ticket" : "tickets"}, ` +
-    `most recently ${escapeHtml(localDateTime(newest.created_at))})</span></span>` +
+    `most recently ${escapeHtml(localStamp(newest.created_at))})</span></span>` +
     (hook("callerHistory")
       ? `<button type="button" class="btn-link" data-repeat-phone="${escapeHtml(phone)}">View</button>` : "") +
     `<button type="button" class="rc-close" data-repeat-dismiss aria-label="Dismiss this notice" title="Dismiss">` +
@@ -84,7 +84,7 @@ export function checkRepeatCaller() {
         .filter((t) => !(editing && Number(t.id) === Number(editing.id)));
       renderRepeatCaller(matches, phone);
       fillKnownCaller(matches, digits);
-    } catch (e) { clearRepeatCaller(); }
+    } catch (e) { if (token === repeatLookupToken) clearRepeatCaller(); }
   }, 350);
 }
 
@@ -102,6 +102,8 @@ export function initRepeatCaller() {
   on("repeat-caller", "click", (e) => {
     if (e.target.closest("[data-repeat-dismiss]")) {
       repeatDismissedDigits = getVal("phone").replace(/\D/g, "");
+      clearTimeout(repeatLookupTimer);
+      repeatLookupToken++;       // an answer still on its way would bring it back
       return clearRepeatCaller();
     }
     const btn = e.target.closest("[data-repeat-phone]");

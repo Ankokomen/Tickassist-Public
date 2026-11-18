@@ -1,6 +1,6 @@
 /* The Note Generator form as data: fields, the OS boxes, the ticket it saves. */
 
-import { $, getVal, on } from "../core/dom.js";
+import { $, getVal } from "../core/dom.js";
 import { callType } from "./calltype.js";
 import { editing } from "./edit-session.js";
 import { buildNote } from "./note.js";
@@ -72,6 +72,9 @@ export function collectTicket() {
   const data = {};
   for (const [col, id] of Object.entries(FIELD_MAP)) data[col] = getVal(id);
   data.res_status = normalizeResolutionStatus(data.res_status);
+  // The Dealer box is only there for a dealer; what it held before the
+  // Contact Type was changed is not part of this ticket (nor of its note).
+  if (data.contact_type !== "Dealer") data.dealer_name = "";
   data.os_name = getOs();
   if (osChecked().length < 2) data.os_version2 = "";
   data.call_type = callType;

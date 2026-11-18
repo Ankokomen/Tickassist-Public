@@ -94,8 +94,9 @@ function ensureAlertEls() {
     document.body.appendChild(banner);
     banner.addEventListener("click", (e) => {
       if (!e.target.closest("[data-alert-ack]")) return;
-      alertAck = alertShown;
+      // Waving a preview away acknowledges nothing: a real alert still shows.
       if (alertPreviewUntil) alertPreviewUntil = 0;
+      else alertAck = alertShown;
       evaluateAlerts();
     });
   }

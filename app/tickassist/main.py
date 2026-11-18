@@ -163,7 +163,17 @@ def main(argv=None):
     if app.apply_office_push():
         print("  Applied the owner's office settings and features to this PC.")
 
-    httpd = make_server(app, HOST, port)
+    try:
+        httpd = make_server(app, HOST, port)
+    except OSError:
+        # Taken since it was looked at - most likely by a second start of
+        # TickAssist a moment before this one.
+        port, already_running = find_port(app.store.identity)
+        if not already_running:
+            raise
+        if browser:
+            webbrowser.open(f"http://{HOST}:{port}/")
+        return 0
     app.configure_calls()
     print("=" * 56)
     print("  TickAssist - portable ticket handling")

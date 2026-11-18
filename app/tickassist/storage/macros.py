@@ -39,11 +39,3 @@ class JsonMacros:
             found = len(kept) != len(macros)
             macros[:] = kept
         return found
-
-    def add_missing(self, pairs):
-        """(trigger, expansion) pairs; a trigger already here keeps its own expansion."""
-        for trigger, expansion in pairs:
-            try:
-                self._insert(trigger, expansion)
-            except MacroExistsError:
-                pass

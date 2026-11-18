@@ -32,7 +32,8 @@ before_exit = []
 
 
 class Busy(Exception):
-    """An update is already installed and waiting for a restart (HTTP 409)."""
+    """An update is being installed, or is installed and waiting for a
+    restart (HTTP 409)."""
 
 
 def _same(url):
@@ -50,6 +51,7 @@ class Updates:
         self.config = config
         self.settings = settings
         self._checked = None     # (when, address, token, answer)
+        self._installing = threading.Lock()      # two installs at once would undo each other's files
         # The version this process started as. If the VERSION file says
         # otherwise, an update was installed while running: the new pages are
         # served by the old program until a restart.
@@ -133,8 +135,13 @@ class Updates:
         return result
 
     def _apply(self, info, allow_older=False):
-        return installer.apply(info, self.config.root_dir, self.config.data_dir, self.current(),
-                               allow_older=allow_older, extension=self.config.dev, token=self.token())
+        if not self._installing.acquire(blocking=False):
+            raise Busy("An update is already being installed. Give it a moment.")
+        try:
+            return installer.apply(info, self.config.root_dir, self.config.data_dir, self.current(),
+                                   allow_older=allow_older, extension=self.config.dev, token=self.token())
+        finally:
+            self._installing.release()
 
     # ---- at start-up -----------------------------------------------------------
     def auto_update_wanted(self):

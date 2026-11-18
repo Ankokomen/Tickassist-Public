@@ -11,6 +11,7 @@ its own. Standard library only (ctypes).
 """
 
 import os
+import time
 import threading
 
 # Menu entries: (id, label, enabled). id None is a line of text, "-" a rule.
@@ -88,8 +89,8 @@ class Console:
 
 
 # ---- Windows ---------------------------------------------------------------------
-WM_DESTROY, WM_CLOSE, WM_COMMAND, WM_APP = 0x0002, 0x0010, 0x0111, 0x8000
-WM_LBUTTONUP, WM_RBUTTONUP, WM_CONTEXTMENU = 0x0202, 0x0205, 0x007B
+WM_DESTROY, WM_CLOSE, WM_APP = 0x0002, 0x0010, 0x8000
+WM_LBUTTONUP, WM_RBUTTONUP = 0x0202, 0x0205
 WM_TRAY = WM_APP + 1
 NIM_ADD, NIM_MODIFY, NIM_DELETE = 0, 1, 2
 NIF_MESSAGE, NIF_ICON, NIF_TIP, NIF_INFO = 1, 2, 4, 0x10
@@ -110,14 +111,17 @@ class Tray:
         self.hwnd = None
         self._ready = threading.Event()
         self._thread = None
-        self._ids = {}
+        self._late = False             # start() gave up waiting for the icon
+        self._opened_at = 0.0
 
     def start(self, wait=5.0):
         if os.name != "nt":
             return False
         self._thread = threading.Thread(target=self._run, daemon=True, name="tray")
         self._thread.start()
-        self._ready.wait(wait)
+        if not self._ready.wait(wait):
+            self._late = True          # nobody will be told about it: it must not appear after all
+            return False
         return self.ok
 
     def stop(self):
@@ -147,6 +151,8 @@ class Tray:
         self.ok = True
         self._ready.set()
         ctypes, wintypes, user32 = self._ctypes, self._wintypes, self._user32
+        if self._late:
+            user32.PostMessageW(self.hwnd, WM_CLOSE, 0, 0)
         msg = wintypes.MSG()
         while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
             user32.TranslateMessage(ctypes.byref(msg))
@@ -220,7 +226,6 @@ class Tray:
             user32.DestroyWindow(self.hwnd)
             self.hwnd = None
             raise OSError("Windows did not accept the icon")
-        self._build_ids()
 
     def _nid(self, flags):
         nid = self._NID()
@@ -243,12 +248,12 @@ class Tray:
             if message == WM_TRAY:
                 event = lparam & 0xFFFF
                 if event == WM_LBUTTONUP:
-                    self._do(OPEN)
-                elif event in (WM_RBUTTONUP, WM_CONTEXTMENU):
+                    now = time.monotonic()                 # a double click is two of these: open once
+                    if now - self._opened_at > 0.6:
+                        self._opened_at = now
+                        self._do(OPEN)
+                elif event == WM_RBUTTONUP:
                     self._show_menu()
-                return 0
-            if message == WM_COMMAND:                      # an entry, chosen (or sent by a test)
-                self._do(self._ids.get(wparam & 0xFFFF))
                 return 0
             if message == self._taskbar_created:           # Explorer restarted: the icon went with it
                 self._add()
@@ -265,15 +270,10 @@ class Tray:
             return 0
         return user32.DefWindowProcW(hwnd, message, wparam, lparam)
 
-    def _build_ids(self):
-        """{command number: entry} for the menu as it is now."""
-        entries = self.console.entries()
-        self._ids = {100 + i: e[0] for i, e in enumerate(entries) if e[0] not in (None, "-")}
-        return entries
-
     def _show_menu(self):
         ctypes, wintypes, user32 = self._ctypes, self._wintypes, self._user32
-        entries = self._build_ids()
+        entries = self.console.entries()
+        ids = {100 + i: e[0] for i, e in enumerate(entries) if e[0] not in (None, "-")}
         popup = user32.CreatePopupMenu()
         for i, (entry, label, enabled) in enumerate(entries):
             if entry == "-":
@@ -287,7 +287,7 @@ class Tray:
                                        point.x, point.y, 0, self.hwnd, None)
         user32.DestroyMenu(popup)
         if chosen:
-            self._do(self._ids.get(chosen))
+            self._do(ids.get(chosen))
 
     def _do(self, entry):
         if not entry:

@@ -117,11 +117,13 @@ def apply(info, root, data_dir, current, allow_older=False, extension=False, tok
         if (EXTENSION in payload) != bool(extension):
             raise UpdateError("That update is for a different edition of TickAssist - not installing it. "
                               "Check the update address in Settings > Updates.")
-        new_version = (zf.read(payload["VERSION"]).decode("utf-8-sig").strip().lstrip("vV")
-                       if "VERSION" in payload else info.get("latest", ""))
+        new_version = zf.read(payload["VERSION"]).decode("utf-8-sig").strip().lstrip("vV")
         if new_version and not allow_older and not is_newer(new_version, current):
             raise UpdateError(f"Already on {current}; the download is {new_version}.")
-        backup = _backup(root, data_dir)
+        try:
+            backup = _backup(root, data_dir)
+        except OSError as err:              # nothing has been changed yet
+            raise UpdateError(f"The update was not installed: the current version could not be set aside ({err}).")
         wanted = {r: i for r, i in payload.items() if not _protected(r)}
         written = []
         try:
@@ -130,9 +132,16 @@ def apply(info, root, data_dir, current, allow_older=False, extension=False, tok
                 dst = os.path.join(root, *rel.split("/"))
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(dst), prefix=".upd-")
-                with os.fdopen(fd, "wb") as fh:
-                    fh.write(zf.read(wanted[rel]))
-                os.replace(tmp, dst)
+                try:
+                    with os.fdopen(fd, "wb") as fh:
+                        fh.write(zf.read(wanted[rel]))
+                    os.replace(tmp, dst)
+                except Exception:
+                    try:
+                        os.remove(tmp)
+                    except OSError:
+                        pass
+                    raise
                 written.append(rel)
             # Remove program files the new version no longer has.
             old_app = os.path.join(root, "app")
@@ -146,11 +155,15 @@ def apply(info, root, data_dir, current, allow_older=False, extension=False, tok
                 owner_file.merge_patch(os.path.join(root, "app", "owner.json"),
                                   zf.read(payload["app/owner-patch.json"]))
         except Exception as err:            # put the old version back
-            _restore(root, backup)
+            try:
+                _restore(root, backup)
+            except OSError as again:
+                raise UpdateError("The update failed (%s) and the version before it could not be put back "
+                                  "completely (%s). Run the installer - it keeps your settings." % (err, again))
             if isinstance(err, PermissionError):
                 raise UpdateError("The update was undone: TickAssist couldn't replace one of its own files "
                                   "(%s). Close any other TickAssist window and try again, or run the "
                                   "installer instead - it keeps your settings."
-                                  % os.path.basename(getattr(err, "filename", None) or "") or "a file in use")
+                                  % (os.path.basename(getattr(err, "filename", None) or "") or "a file in use"))
             raise UpdateError(f"The update failed and was undone: {err}")
     return {"old": current, "new": new_version, "files": len(written)}

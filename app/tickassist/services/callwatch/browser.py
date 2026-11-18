@@ -275,10 +275,6 @@ class _Tab:
         got = self.call("Browser.getWindowForTarget")
         return got.get("windowId"), got.get("bounds") or {}
 
-    def hidden(self):
-        bounds = self.window()[1]
-        return bounds.get("left", 0) < OFF_SCREEN or bounds.get("top", 0) < OFF_SCREEN
-
     def show(self, bounds):
         """Bring this tab's window on screen, if it is off it. `bounds` says
         where; the window keeps its size."""
@@ -289,10 +285,9 @@ class _Tab:
         return True
 
 
-
 # ---- the reader --------------------------------------------------------------
 class CdpReader:
-    """Polls the debugging port. snapshot() returns the latest result:
+    """Polls the debugging port. poll() returns what is there now:
 
         {"state": "off"|"connected", "message": str, "sources": [...],
          "urls": [tab addresses], "titles": [...]}
@@ -355,7 +350,7 @@ class CdpReader:
             titles.append(title)
             sources.append({"k": "window", "id": "cdp:" + tid, "title": title or addr,
                             "text": text, "n": len([ln for ln in text.splitlines() if ln.strip()]),
-                            "doc": 1, "cdp": True})
+                            "doc": 1})
         for tid in [k for k in self._tabs if k not in live]:
             self._tabs.pop(tid).ws.close()
         if any(MAX_APP.match(u) for u in urls):

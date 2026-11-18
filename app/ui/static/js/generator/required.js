@@ -111,10 +111,6 @@ function renderReqPanel() {
   const box = $("req-rules");
   if (!box) return;
   const rules = reqRulesDraft || reqRules();
-  if (document.activeElement !== $("req-software")) {
-    $("req-software").value = settingsCache && settingsCache.software_devices != null
-      ? settingsCache.software_devices : REQ_DEFAULT_SOFTWARE;
-  }
   const contactTypes = selectValues("contactType");
   box.innerHTML = rules.length ? rules.map((r, i) => {
     const durings = [["", "any call type"], [FIRST_IMPRESSIONS, FIRST_IMPRESSIONS], [TROUBLESHOOTING, TROUBLESHOOTING]]
@@ -144,6 +140,7 @@ async function saveReqRules() {
       software_devices: getVal("req-software"),
     });
     reqRulesDraft = null;
+    reqEdited = false;
     await loadSettings();
     update();
     showToast("Required fields saved", "green");
@@ -153,6 +150,14 @@ async function saveReqRules() {
 export function initRequired() {
   const box = $("req-rules");
   if (!box) return;
+  // Anything touched in the panel is yours until it is saved: settings being
+  // read again (any drawer opening does that) must not take it back.
+  const edited = () => { reqEdited = true; };
+  box.addEventListener("input", edited);
+  box.addEventListener("change", edited);
+  box.addEventListener("click", (e) => { if (e.target.closest("[data-req-del]")) edited(); });
+  ["btn-req-add", "btn-req-reset"].forEach((id) => on(id, "click", edited));
+  on("req-software", "input", edited);
   on("btn-req-add", "click", () => {
     reqRulesDraft = readReqRules();
     reqRulesDraft.push({ during: "", kind: "hardware", value: "", fields: [] });
@@ -185,8 +190,15 @@ export function initRequired() {
   });
 }
 
-// Settings were (re)loaded: drop an unsaved draft of the rules and show the saved ones.
+// Settings were (re)loaded: show the saved rules - unless the panel holds
+// edits that have not been saved yet.
+let reqEdited = false;
 export function resetReqPanel() {
+  if (reqEdited) return;
   reqRulesDraft = null;
+  if ($("req-software")) {
+    $("req-software").value = settingsCache && settingsCache.software_devices != null
+      ? settingsCache.software_devices : REQ_DEFAULT_SOFTWARE;
+  }
   renderReqPanel();
 }

@@ -95,11 +95,9 @@ their own licenses, which this license does not change:
 
 - the Python runtime, under the Python Software Foundation License
   (`runtime/LICENSE.txt` in an installed copy);
-- the IBM Plex Sans and IBM Plex Mono fonts, copyright IBM Corp., and the
-  Lato font, copyright tyPoland Lukasz Dziedzic, each under the SIL Open
-  Font License 1.1. Their notices and the full text of that license are
-  beside the font files, in `app/ui/static/fonts/OFL-IBM-Plex.txt` and
-  `app/ui/static/fonts/OFL-Lato.txt`.
+- the IBM Plex Sans and IBM Plex Mono fonts, copyright IBM Corp., under the
+  SIL Open Font License 1.1. Their notice and the full text of that license
+  are beside the font files, in `app/ui/static/fonts/OFL-IBM-Plex.txt`.
 
 ## 6. Ending
 

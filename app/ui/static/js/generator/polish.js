@@ -93,7 +93,12 @@ export async function aiPolish() {
       serial: getVal("serialNumber"),
       contact: getVal("contact"),
     };
+    const note = noteCount;
     const data = await api("POST", "/api/polish", payload);
+    if (note !== noteCount) {      // saved, cleared or another ticket opened meanwhile
+      showToast("AI Polish answered after the note had changed - not applied", "slate");
+      return;
+    }
     const r = data.result || {};
     // Keep what was there, so one click puts it back.
     polishUndo = { problem, workflow, nextSteps, contact: getVal("contact"), outcome: getVal("outcome") };
@@ -125,8 +130,11 @@ export async function aiPolish() {
   }
 }
 
-// The form was cleared: there is nothing left to undo.
+// The form was cleared, or another ticket opened in it: there is nothing left
+// to undo, and an answer still on its way is for a note that is gone.
+let noteCount = 0;
 export function clearPolishUndo() {
+  noteCount++;
   polishUndo = null;
   renderPolishUndo(false);
 }

@@ -134,6 +134,8 @@ class TicketStore:
     def copy_photos(self, from_id, to_id):
         """A ticket saved as a copy gets the original's photos too."""
         with self.db.session() as conn:
+            if not self._exists(conn, to_id):
+                return 0
             return conn.execute(
                 "INSERT INTO photos (ticket_id, name, mime, width, height, size, data) "
                 "SELECT ?, name, mime, width, height, size, data FROM photos "

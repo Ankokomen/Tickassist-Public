@@ -19,8 +19,7 @@ def incoming(app, req):
     """Long-poll: answer as soon as a call newer than ?since= arrives. Without
     ?since= it answers at once with the current sequence, which is how a
     freshly loaded page learns where "now" is without replaying an old call."""
-    raw = req.arg("since")
-    seq, event = app.calls.wait(int(raw) if raw.isdigit() else None, INCOMING_HOLD_SECONDS)
+    seq, event = app.calls.wait(req.int_arg("since"), INCOMING_HOLD_SECONDS)
     return {"seq": seq, "event": event, "watch": app.calls.status()}
 
 
@@ -47,6 +46,8 @@ def open_max(app, req):
     url = (data.get("max_url") or settings.get("max_url") or "").strip()
     prefer = data.get("max_browser") or settings.get("max_browser") or "auto"
     result = app.calls.open_max(url, prefer if prefer in ("auto", "chrome", "edge") else "auto")
+    if not result.get("ok"):
+        result = dict(result, error=result.get("message") or "MAX could not be opened.")   # what the page shows
     return Response.json(result, 200 if result.get("ok") else 500)
 
 

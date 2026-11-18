@@ -67,11 +67,3 @@ class JsonLists:
             count = len(lists.get(key, []))
             lists[key] = []
             return count
-
-    def add_missing(self, key, names):
-        """Add the names not already listed; duplicates are skipped."""
-        for name in names:
-            try:
-                self.add(key, name)
-            except (ValueError, ListItemExistsError):
-                pass

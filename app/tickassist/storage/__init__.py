@@ -10,7 +10,6 @@ import itertools
 import os
 from dataclasses import dataclass
 
-from .errors import ListItemExistsError, MacroExistsError  # noqa: F401
 from .lists import JsonLists
 from .macros import JsonMacros
 from .settings import JsonSettings

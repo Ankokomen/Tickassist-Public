@@ -8,6 +8,7 @@ import { callType, setCallType } from "./calltype.js";
 import { editing, setEditing } from "./edit-session.js";
 import { fiTimerArmed, fiTimerStart, restoreFiTimer } from "./fi-timer.js";
 import { isFormDirty, normalizeResolutionStatus } from "./fields.js";
+import { rememberListedValues } from "../lists/lists.js";
 
 const FORM_STORAGE_TTL_MS = 96 * 60 * 60 * 1000; // 96 hours
 
@@ -68,7 +69,10 @@ export function restoreFormState() {
   if (stored.callType) setCallType(stored.callType, false);
 
   // Re-enter edit mode if the draft was an open saved ticket.
-  if (stored.editing && stored.editing.id) setEditing(stored.editing);
+  if (stored.editing && stored.editing.id) {
+    setEditing(stored.editing);
+    rememberListedValues();      // as when it was opened: what it holds is not checked again unless changed
+  }
 
   // The handle timer rides with the draft, so an accidental reload mid-call
   // can't zero the clock on a First Impressions note.

@@ -43,7 +43,6 @@
   --slate-100: #f1f5f9;
 
   /* Planmeca blue ramp, anchored at the logo's #244190. */
-  --brand-700: #1C3373;
   --brand-600: #244190;
   --brand-500: #3B5CC0;
   --brand-400: #8CA2E5;
@@ -141,7 +140,6 @@ html[data-theme="contrast"] {
   --slate-400: #e0e0e0;  /* labels (13:1 on black) */
   --slate-300: #f2f2f2;
   --slate-100: #ffffff;  /* primary text (21:1 on black) */
-  --brand-700: #3D5FD6;
   --brand-600: #4C6FE8;  /* brighter Planmeca blue for buttons on black */
   --brand-500: #7391F2;
   --brand-400: #A9BCF8;  /* accent text (~10:1 on black) */
@@ -1453,7 +1451,6 @@ html[data-theme="light"] .switch-row { background: #f8fafc; border-color: #dfe5e
 @media print { .photos { display: none; } }
 
 /* ---- Dynamics 365 -------------------------------------------------------- */
-.d365-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .d365-steps { margin: 8px 0 8px 18px; display: flex; flex-direction: column; gap: 6px; }
 .d365-modal { max-width: 620px; }
 .d365-modal .stack { gap: 14px; }
@@ -1518,8 +1515,8 @@ html[data-theme="light"] .switch-row { background: #f8fafc; border-color: #dfe5e
 /* ---- feature switches (Settings > Features) ---- */
 body.feat-off-calls [data-feature~="calls"],
 body.feat-off-caller_type [data-feature~="caller_type"],
-body.feat-off-known_caller [data-feature~="known_caller"],
-body.feat-off-case_from_max [data-feature~="case_from_max"],
+body.feat-off-transfer [data-feature~="transfer"],
+body.feat-off-roster [data-feature~="roster"],
 body.feat-off-photos [data-feature~="photos"],
 body.feat-off-d365 [data-feature~="d365"],
 body.feat-off-sheet [data-feature~="sheet"],
@@ -1809,7 +1806,6 @@ html[data-theme="lcars"] {
   --slate-400: #cc99cc;  /* labels = LCARS lavender (8.6:1) */
   --slate-300: #ffcc99;  /* strong secondary = peach */
   --slate-100: #ffebd6;  /* primary text (17.3:1) */
-  --brand-700: #cc7a00;
   --brand-600: #ff9900;
   --brand-500: #ffad33;
   --brand-400: #ffcc66;  /* links and accents on black */
@@ -2703,7 +2699,7 @@ body[data-rotation="first-impression"]:not([data-fi-more="1"]) .fi-step[data-fi-
 .fi-step[data-state="open"] .fi-step-status.need { color: var(--amber-400); }
 .fi-step[data-state="folded"] .fi-step-body, .fi-step[data-state="locked"] .fi-step-body { display: none !important; }
 .fi-step[data-state="folded"] .fi-step-num { background: var(--green-500, #16a34a); color: #fff; }
-.fi-step[data-state="folded"] .fi-step-status { color: var(--slate-200); }
+.fi-step[data-state="folded"] .fi-step-status { color: var(--slate-200, #e2e8f0); }
 .fi-step[data-state="locked"] { opacity: 0.55; }
 .fi-step[data-state="locked"] .fi-step-head { cursor: not-allowed; }
 

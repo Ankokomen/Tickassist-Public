@@ -5,7 +5,9 @@ import { setCallType, standingCallType } from "./calltype.js";
 import { revealEnvIfFilled } from "./env-section.js";
 import { FIELD_MAP, normalizeResolutionStatus, setOs } from "./fields.js";
 import { update } from "./preview.js";
-import { checkRepeatCaller } from "./repeat-caller.js";
+import { clearPolishUndo } from "./polish.js";
+import { checkRepeatCaller, forgetRepeatDismissal } from "./repeat-caller.js";
+import { resetIncomingState } from "../integrations/callwatch.js";
 import { resetSheetState, sheetLookup } from "../integrations/sheets.js";
 import { rememberListedValues } from "../lists/lists.js";
 import { loadPhotos } from "../photos.js";
@@ -45,6 +47,14 @@ export function startEditing(ticket, page) {
 }
 
 export function loadTicketIntoForm(t) {
+  // Nothing remembered about the note that was on the form applies to this
+  // one: not its undo, nor what a call or a known caller filled into it.
+  clearPolishUndo();
+  resetIncomingState();
+  forgetRepeatDismissal();
+  // The note keeps the time it was written, not the time the form was last cleared.
+  const stamp = /^DATE:[ \t]*(.+)$/m.exec(t.note_text || "");
+  if (stamp && $("dateTime")) $("dateTime").value = stamp[1].trim();
   for (const [col, id] of Object.entries(FIELD_MAP)) {
     const el = $(id);
     if (!el) continue;

@@ -44,10 +44,13 @@ class CallWatcher:
         self.calls = calls
         self.detector = CallDetector()
         self._off_message = "Turned off in Settings."
-        self._last_contact_id = None   # last call id read from an address bar
+        self._last_contact_id = None   # the call whose page was last seen for the first time
+        self._seen_ids = []            # ...and the ones before it (their pages may still be open)
         self._lock = threading.Lock()
         self._proc_lock = threading.RLock()
         self._cdp = CdpReader()
+        self._cdp_lock = threading.Lock()   # one thread in the browser reader at a time
+        self._cdp_gen = 0                   # the generation its newest thread runs for
         self._ps_msg = None            # latest snapshots from the two readers
         self._cdp_msg = None
         self._proc = None
@@ -96,10 +99,13 @@ class CallWatcher:
                 self._generation += 1
                 self._start_cdp(self._generation, pattern)
             return
+        self._generation += 1
         if not pattern:
             self._set(state="error", message="Add at least one window keyword.")
+            # The browser Open MAX starts is still looked after: it starts off
+            # the screen, and this is what brings it on.
+            self._start_cdp(self._generation, None)
             return
-        self._generation += 1
         self._thread = threading.Thread(target=self._run,
                                         args=(self._generation, pattern),
                                         daemon=True, name="callwatch")
@@ -151,21 +157,23 @@ class CallWatcher:
 
     # ---- the browser reader (MAX opened with "Open MAX") -------------------
     def _start_cdp(self, gen, pattern):
-        try:
-            title_regex = re.compile(pattern)
-        except re.error:
-            title_regex = None
+        title_regex = re.compile(pattern) if pattern else None
+        self._cdp_gen = gen
         threading.Thread(target=self._cdp_run, args=(gen, title_regex),
                          daemon=True, name="callwatch-cdp").start()
 
     def _cdp_run(self, gen, title_regex):
         was = None
         while gen == self._generation:
-            try:
-                msg = self._cdp.poll(title_regex)
-            except Exception as err:        # never let this thread die quietly
-                msg = {"state": "off", "message": "", "sources": [], "urls": [],
-                       "titles": [], "error": str(err)[:120]}
+            # A thread from before a restart may still be in here: they share
+            # the browser's connections, so they take turns.
+            with self._cdp_lock:
+                if gen != self._generation:
+                    break
+                try:
+                    msg = self._cdp.poll(title_regex)
+                except Exception:               # never let this thread die quietly
+                    msg = {"state": "off", "message": "", "sources": [], "urls": [], "titles": []}
             if gen != self._generation:
                 break
             self._cdp_msg = msg
@@ -174,7 +182,9 @@ class CallWatcher:
                 self._process()             # also once when it goes away
             was = msg["state"]
             time.sleep(self.INTERVAL_MS / 1000.0 if msg["state"] == "connected" else 3.0)
-        self._cdp.close()
+        with self._cdp_lock:
+            if self._cdp_gen == gen:        # nobody took over: hang up
+                self._cdp.close()
 
     def want_max(self):
         self._cdp.want_max()
@@ -205,7 +215,7 @@ class CallWatcher:
         encoded = base64.b64encode(_BOOTSTRAP.encode("utf-16-le")).decode("ascii")
         env = dict(os.environ, TA_SCRIPT=_READER, TA_MATCH=pattern, TA_OWN=self.own_profile or "",
                    TA_PARENT=str(os.getpid()),      # the reader ends when this process does
-                   TA_TOAST=keyword_regex(self.match) or "(?!)",
+                   TA_TOAST=keyword_regex(self.match),
                    TA_URL=URL_MATCH,
                    TA_INTERVAL_MS=str(self.INTERVAL_MS))
         return subprocess.Popen(
@@ -236,6 +246,7 @@ class CallWatcher:
                 self._handle_line(raw.decode("utf-8", "replace").strip())
             if gen != self._generation:
                 return
+            self._ps_msg = None             # what it last saw is no longer what is there
             tail = ""
             try:
                 tail = proc.stderr.read().decode("utf-8", "replace").strip()
@@ -254,8 +265,6 @@ class CallWatcher:
     @staticmethod
     def _no_match_message(titles):
         # The fastest way to find MAX's real title is to see the list.
-        if isinstance(titles, str):
-            titles = [titles]
         shown = [t[:60] for t in (titles or []) if t and t != "Program Manager"][:8]
         base = "Running - no window title starts with a keyword yet."
         if shown:
@@ -304,11 +313,15 @@ class CallWatcher:
         # Still on screen: remember the call, so a page opened (or a Transfer
         # drawer used) after the call began can still pick its id up from
         # the status. It is dropped a minute after the page goes away.
-        self._set(call_page_id=info["contact_id"], call_page_at=time.time(),
+        cid = info["contact_id"]
+        if cid != self._last_contact_id and cid in self._seen_ids:
+            return      # an earlier call's page, left open: not the call, and not news
+        self._set(call_page_id=cid, call_page_at=time.time(),
                   call_page_phone=info["ani"] or None)
-        if info["contact_id"] == self._last_contact_id:
+        if cid == self._last_contact_id:
             return
-        self._last_contact_id = info["contact_id"]
+        self._last_contact_id = cid
+        self._seen_ids = (self._seen_ids + [cid])[-50:]
         num = info["ani"]
         if not num and info.get("withheld"):
             # The caller withheld their number: the page still names the call.
@@ -365,12 +378,11 @@ class CallWatcher:
             msg["urls"] = self._listed(ps.get("urls")) + list(web.get("urls") or [])
             if not ps and not web.get("sources") and not web.get("urls"):
                 return
+            msg["cdp_only"] = not ps
             self._apply(msg)
 
     def _apply(self, msg):
         sources = msg.get("w") or []
-        if isinstance(sources, dict):
-            sources = [sources]
         # Windows of the browser Open MAX started: the window reader only
         # names them, the browser reader is what reads them.
         own = [s for s in sources if s.get("own")]
@@ -396,9 +408,13 @@ class CallWatcher:
             message = "The MAX window is there, but nothing in it could be read just now."
         else:
             message = self._no_match_message(msg.get("all"))
-        self._set(state="running", windows=len(windows), last_scan=time.time(),
-                  titles=[s.get("title", "")[:80] for s in windows][:5], message=message,
+        self._set(windows=len(windows), last_scan=time.time(),
+                  titles=[s.get("title", "")[:80] for s in windows][:5],
                   scan_ms=msg.get("ms"), toast_ms=msg.get("toast_ms"))
+        # The browser reader alone has nothing to say about a window reader
+        # that failed: that stays on show.
+        if not (msg.get("cdp_only") and self.status.get("state") == "error"):
+            self._set(state="running", message=message)
         if msg.get("err"):
             self._set(message=f"Scan problem: {msg['err'][:200]}")
         at = self.status.get("call_page_at")
@@ -412,8 +428,6 @@ class CallWatcher:
                                ev.get("matched"), ev.get("update", False),
                                ev.get("case_number"), withheld=ev.get("withheld", False))
         urls = msg.get("urls") or []
-        if isinstance(urls, str):
-            urls = [urls]
         if msg.get("bars") is not None and (msg.get("bars") or urls):
             addrs = msg.get("addrs") or []
             if isinstance(addrs, str):

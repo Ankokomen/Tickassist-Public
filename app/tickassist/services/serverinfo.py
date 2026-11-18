@@ -76,7 +76,9 @@ def parse_rules(text):
     return out
 
 
-_LINE = re.compile(r"^\s*([^:\[\]=][^:]*?)\s*:\s*(.*?)\s*$")
+# The label starts on something that is not a space, so a long run of blanks
+# is gone through once rather than over and over.
+_LINE = re.compile(r"^\s*([^\s:\[\]=][^:]*?)\s*:\s*(.*?)\s*$")
 _SECTION = re.compile(r"^\s*\[([^\]]+)\]\s*$")
 
 

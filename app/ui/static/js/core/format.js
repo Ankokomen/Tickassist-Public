@@ -9,6 +9,14 @@ export function localDateTime(ts) {
   return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
 }
 
+// The same for a time the server already gave as this PC's local time.
+export function localStamp(ts) {
+  if (!ts) return "";
+  const d = new Date(String(ts).replace(" ", "T"));
+  if (isNaN(d)) return ts;
+  return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+}
+
 export function humanAge(ms) {
   const m = Math.round(ms / 60000);
   if (m < 1) return "moments";

@@ -65,6 +65,7 @@ function notesHtml(text) {
   return html + (inList ? "</ul>" : "");
 }
 
+// open: undefined leaves the notes folded or unfolded as they are.
 function showNotes(version, text, open) {
   const box = $("upd-notes");
   if (!box) return;
@@ -72,10 +73,10 @@ function showNotes(version, text, open) {
   box.classList.toggle("hidden", !html);
   $("upd-notes-version").textContent = version || "";
   $("upd-notes-body").innerHTML = html;
-  box.open = !!open;
+  if (open !== undefined) box.open = !!open;
 }
 
-function render() {
+function render(quiet = false) {
   const newer = info.newer && !info.restart_needed;
   const chip = $("update-chip");
   chip.classList.toggle("hidden", !newer);
@@ -89,7 +90,7 @@ function render() {
   } else {
     card("current", "TickAssist is up to date", `Version ${info.current} is the newest. ${checkedAt()}`);
   }
-  showNotes(info.latest, info.notes, newer);
+  showNotes(info.latest, info.notes, quiet ? undefined : newer);
 }
 
 function failed(err) {
@@ -107,9 +108,10 @@ async function checkUpdates(fresh, quiet = false) {
   try {
     info = await api("GET", "/api/update/check" + (fresh ? "?fresh=1" : ""));
   } catch (err) {
-    if (quiet) return;
+    if (quiet || busy) return;
     info = null; $("update-chip").classList.add("hidden"); failed(err); return;
   }
+  if (busy) return;       // an install began while this was on its way: its card stays
   if (info.auto_message && /^Updated/.test(info.auto_message)) {
     const seen = store.get(KEYS.autoUpdateSeen, true) || "";
     if (seen !== info.auto_message) {
@@ -117,7 +119,7 @@ async function checkUpdates(fresh, quiet = false) {
       showToast(info.auto_message, "green");
     }
   }
-  render();
+  render(quiet);
 }
 
 /* ---- installing ------------------------------------------------------------- */

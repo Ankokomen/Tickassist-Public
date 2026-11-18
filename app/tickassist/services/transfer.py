@@ -9,6 +9,7 @@ browser, so there is no cross-origin problem and the address is never guessed.
 Nothing here touches the phone system itself: the endpoint does the transfer.
 """
 
+import http.client
 import json
 import os
 import re
@@ -87,7 +88,7 @@ def find_queue(equipment, skill):
 
 def check_case(value):
     """Return None when the case number is usable, else the reason."""
-    val = (value or "").strip().upper()
+    val = str(value or "").strip().upper()
     if not CASE_RE.match(val):
         return "Case number must be CAS followed by 7 digits (e.g. CAS0481234)."
     if int(val[3:]) < MIN_CASE:
@@ -151,7 +152,7 @@ def execute(url, data):
         detail = err.read(300).decode("utf-8", "replace").strip()
         raise TransferError(f"The transfer service answered {err.code}: "
                             f"{_squash(detail) or err.reason}", 502)
-    except (urllib.error.URLError, OSError) as err:
+    except (urllib.error.URLError, OSError, http.client.HTTPException) as err:
         raise TransferError("Could not reach the transfer service "
                             f"({getattr(err, 'reason', err)}).", 502)
     problem = reply_problem(ctype, body)
@@ -177,10 +178,10 @@ class _KeepPost(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         if code not in (301, 302, 303, 307, 308):
             return None
-        new = urllib.request.Request(
-            newurl, data=req.data, headers=dict(req.header_items()),
-            method="POST")
-        return new
+        # Not the Host (or length) worked out for the first address: the new
+        # request gets its own.
+        keep = {k: v for k, v in req.header_items() if k.lower() not in ("host", "content-length")}
+        return urllib.request.Request(newurl, data=req.data, headers=keep, method="POST")
 
 
 def _squash(text):

@@ -290,8 +290,8 @@ class D365Client:
 
     @staticmethod
     def _phone_matches(record, fields, digits):
-        want = digits[-10:]
-        return any(_digits(record.get(f))[-10:] == want for f in fields if record.get(f))
+        want = digits[-10:]            # may be shorter: a number typed without its area code
+        return any(_digits(record.get(f))[-len(want):] == want for f in fields if record.get(f))
 
     def _contact_row(self, r):
         acct_name = r.get("_parentcustomerid_value@OData.Community.Display.V1.FormattedValue") or ""
@@ -508,17 +508,19 @@ def _attachments(tickets, photo_ids, case_number):
 def create_case_with_note(client, tickets, data):
     """Create the case, then its note and photos. The case is returned even if
     the note fails, so the form always learns about the case that now exists."""
+    # Read before the case is made: what is wrong with the request must not
+    # come to light when the case already exists.
+    note = data.get("note") if isinstance(data.get("note"), dict) else {}
+    ids = [int(i) for i in (data.get("photo_ids") or [])]
     case = client.create_case(data.get("title"), data.get("description"),
                               data.get("customer"), data.get("contact_id"))
     result = {"case": case}
-    note = data.get("note") or {}
-    ids = [int(i) for i in (data.get("photo_ids") or [])]
     if ((note.get("text") or "").strip() or ids) and case.get("id"):
         try:
             photos = _attachments(tickets, ids, case.get("number"))
             result["note"] = client.add_note(case["id"], note.get("subject"), note.get("text"), photos)
             tickets.mark_sent(ids)
-        except D365Error as err:
+        except Exception as err:      # noqa: BLE001 - whatever it was, the case is there
             result["note_error"] = str(err)
     return result
 
