@@ -60,17 +60,55 @@ export function setFieldFromSheet(id, value, overwrite) {
   return true;
 }
 
+// What the Imaging Package in the note filled in: field id -> { value: what
+// the sheet put there, before: what was there }. When the package is changed
+// or removed these are taken back, so one package's values never linger under
+// another (or under none). A field edited since is the user's and is left.
+let pkgFilled = { key: "", fields: {} };
+
+function takeBackPackageFills() {
+  const fields = pkgFilled.fields;
+  pkgFilled = { key: "", fields: {} };
+  let changed = false;
+  for (const [id, was] of Object.entries(fields)) {
+    const el = $(id);
+    if (!el || el.value !== was.value) continue;
+    el.value = was.before;
+    fireInput(el);
+    changed = true;
+  }
+  if (changed) { update(); renderEnvSummary(); }
+}
+
+// A new or cleared note: nothing is remembered from the last one.
+export function resetSheetState() {
+  Object.values(sheetTimers).forEach(clearTimeout);
+  Object.keys(sheetToken).forEach((f) => { sheetToken[f] += 1; });   // answers still on their way are dropped
+  sheetLast = {};
+  sheetRow = null;
+  pkgFilled = { key: "", fields: {} };
+  renderSheetAlternatives([]);
+  applySheetCheck();
+}
+
 // Put one sheet row's values into the form; returns the labels of what changed.
 function applySheetValues(values, overwrite, keyId = "imagingPackage") {
   const filled = [];
+  const isPkg = keyId === "imagingPackage";
+  if (isPkg && pkgFilled.key !== getVal(keyId)) pkgFilled = { key: getVal(keyId), fields: {} };
   for (const [field, value] of Object.entries(values || {})) {
     const id = FIELD_MAP[field];
     if (!id || id === keyId) continue;
     // The dealer box only exists for a Dealer contact; don't fill what's hidden.
     if (field === "dealer_name" && getVal("contactType") !== "Dealer") continue;
+    const el = $(id);
+    const before = el ? el.value : "";
     if (setFieldFromSheet(id, value, overwrite)) {
-      const el = $(id);
       filled.push((el && el.placeholder) || id);
+      if (isPkg) {
+        const had = pkgFilled.fields[id];
+        pkgFilled.fields[id] = { value: el.value, before: had ? had.before : before };
+      }
     }
   }
   if (filled.length) { update(); revealEnvIfFilled(); renderEnvSummary(); }
@@ -241,6 +279,7 @@ export function initSheet() {
       if (field === "imaging_package") {
         sheetRow = null; applySheetCheck();   // the old row no longer applies
         renderSheetAlternatives([]);
+        if (pkgFilled.key !== getVal("imagingPackage")) takeBackPackageFills();
       }
       clearTimeout(sheetTimers[field]);
       sheetTimers[field] = setTimeout(() => sheetLookup(false, false, field), 700);
@@ -315,8 +354,6 @@ export function initSheet() {
 // (the lookup fills them); Serial Number is per unit, so it is never compared.
 let sheetRow = null;   // { key, section, values } for the package in the note
 
-// A saved note was opened: its package is compared afresh.
-export function clearSheetRow() { sheetRow = null; }
 const SHEET_CHECK_FIELDS = ["os_version", "device_type", "device_firmware",
   "device_tool_version", "didapi", "romexis", "reco_os", "reco_pc", "reco_firmware"];
 let sheetDiffSig = "";

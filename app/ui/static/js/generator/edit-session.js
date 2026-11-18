@@ -6,7 +6,7 @@ import { revealEnvIfFilled } from "./env-section.js";
 import { FIELD_MAP, normalizeResolutionStatus, setOs } from "./fields.js";
 import { update } from "./preview.js";
 import { checkRepeatCaller } from "./repeat-caller.js";
-import { clearSheetRow, sheetLookup } from "../integrations/sheets.js";
+import { resetSheetState, sheetLookup } from "../integrations/sheets.js";
 import { rememberListedValues } from "../lists/lists.js";
 import { loadPhotos } from "../photos.js";
 
@@ -58,7 +58,7 @@ export function loadTicketIntoForm(t) {
   checkRepeatCaller();
   setOs(t.os_name);
   rememberListedValues();
-  clearSheetRow();
+  resetSheetState();     // a saved note was opened: its package is compared afresh
   update();
   if (getVal("imagingPackage")) sheetLookup(false, true);
 }

@@ -99,12 +99,17 @@ function failed(err) {
 }
 
 // fresh: ask GitHub again even if the server has an answer from a moment ago.
-async function checkUpdates(fresh) {
+// quiet: the look that happens by itself now and then - what is on screen
+// stays as it is unless there is an answer.
+async function checkUpdates(fresh, quiet = false) {
   if (busy) return;
-  card("checking", "Checking for updates…");
+  if (!quiet) card("checking", "Checking for updates…");
   try {
     info = await api("GET", "/api/update/check" + (fresh ? "?fresh=1" : ""));
-  } catch (err) { info = null; $("update-chip").classList.add("hidden"); failed(err); return; }
+  } catch (err) {
+    if (quiet) return;
+    info = null; $("update-chip").classList.add("hidden"); failed(err); return;
+  }
   if (info.auto_message && /^Updated/.test(info.auto_message)) {
     const seen = store.get(KEYS.autoUpdateSeen, true) || "";
     if (seen !== info.auto_message) {
@@ -233,13 +238,21 @@ function tokenStatus(set) {
 
 /* ---- what Settings loads -------------------------------------------------------- */
 let checkedOnce = false;
+// While the page is open it looks again this often, so a version published
+// during the day shows up (the chip at the top, and the icon by the clock)
+// without a restart. Nothing is installed by this; that stays a choice.
+const RECHECK_MS = 30 * 60 * 1000;
 
 // Called with every /api/settings answer; the first one also checks for updates.
 export function fillUpdateSettings(s) {
   if ($("upd-auto")) $("upd-auto").checked = s.auto_update !== false;
   if ($("upd-version")) $("upd-version").textContent = `Version ${s.version || ""}`;
   tokenStatus(s.update_token_set);
-  if (!checkedOnce) { checkedOnce = true; checkUpdates(false); }
+  if (!checkedOnce) {
+    checkedOnce = true;
+    checkUpdates(false);
+    setInterval(() => checkUpdates(false, true), RECHECK_MS);
+  }
 }
 
 /* ---- the version line --------------------------------------------------------- */

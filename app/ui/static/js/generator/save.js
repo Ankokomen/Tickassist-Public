@@ -15,6 +15,7 @@ import { clearRepeatCaller, forgetRepeatDismissal } from "./repeat-caller.js";
 import { missingRequired, reportMissingRequired } from "./required.js";
 import { resetIncomingState, takePendingIncoming } from "../integrations/callwatch.js";
 import { rosterAfterSave } from "../integrations/roster.js";
+import { resetSheetState } from "../integrations/sheets.js";
 import { autoRegister, ENV_COMBOS, FREE_LISTS, reportUnlisted, unlistedFields } from "../lists/lists.js";
 import { switchPage } from "../pages/nav.js";
 import { discardDraftPhotos, forgetPhotos, loadPhotos, photos } from "../photos.js";
@@ -93,6 +94,7 @@ export function resetFields() {
   forgetRepeatDismissal();
   resetIncomingState();
   clearRepeatCaller();
+  resetSheetState();
   setEditing(null);
   // Before refreshTimestamp, so its saveFormState persists the zeroed clock.
   resetFiTimer();
